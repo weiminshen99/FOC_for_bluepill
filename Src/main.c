@@ -169,6 +169,14 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
   static uint16_t max_speed;
 #endif
 
+void PC13_led_init(void)
+{
+  volatile uint32_t* RCC_APB2ENR = (volatile uint32_t*) 0x40021018;     // RCC
+  volatile uint32_t* GPIOC_CRH =  (volatile uint32_t*) 0x40011004;      // Port C
+  *RCC_APB2ENR |= (0b1<<4);     // set bit4=1 to enable Port C
+  *GPIOC_CRH &= ~(0b1111<<20);  // clear PC13, bits 23..20
+  *GPIOC_CRH |=  (0b0110<<20);  // set the bits to 0110 for Mode Output 2
+}
 
 int main(void) {
 
@@ -194,6 +202,17 @@ int main(void) {
   SystemClock_Config();
 
   __HAL_RCC_DMA1_CLK_DISABLE();
+
+  PC13_led_init();
+
+  while (HAL_InitTick(0) != HAL_ERROR) {
+        // this means the timers are started successfully
+	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+	HAL_Delay(100);
+  }
+}
+
+/*
   MX_GPIO_Init();
   MX_TIM_Init();
   MX_ADC1_Init();

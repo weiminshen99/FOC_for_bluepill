@@ -488,7 +488,7 @@ void MX_GPIO_Init(void) {
 
 void MX_TIM_Init(void) {
   __HAL_RCC_TIM1_CLK_ENABLE();
-  __HAL_RCC_TIM8_CLK_ENABLE();
+//  __HAL_RCC_TIM8_CLK_ENABLE();   // there is no TIM8 on Bluepill/STMF103C8
 
   TIM_MasterConfigTypeDef sMasterConfig;
   TIM_OC_InitTypeDef sConfigOC;
@@ -601,14 +601,14 @@ void MX_ADC1_Init(void) {
   hadc1.Init.ScanConvMode          = ADC_SCAN_ENABLE;
   hadc1.Init.ContinuousConvMode    = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T8_TRGO;
+//  hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T8_TRGO; // no TIM8 on Bluepill
   hadc1.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion       = 5;
   HAL_ADC_Init(&hadc1);
   /**Enable or disable the remapping of ADC1_ETRGREG:
     * ADC1 External Event regular conversion is connected to TIM8 TRG0
     */
-  __HAL_AFIO_REMAP_ADC1_ETRGREG_ENABLE();
+//  __HAL_AFIO_REMAP_ADC1_ETRGREG_ENABLE(); // no TIM8 on Bluepill
 
   /**Configure the ADC multi-mode
     */

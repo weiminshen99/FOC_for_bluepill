@@ -42,7 +42,7 @@
 #define RIGHT_HALL_V_PORT GPIOC
 #define RIGHT_HALL_W_PORT GPIOC
 
-#define LEFT_TIM TIM8
+#define LEFT_TIM TIM2				// used to be TIM8
 #define LEFT_TIM_U CCR1
 #define LEFT_TIM_UH_PIN GPIO_PIN_6
 #define LEFT_TIM_UH_PORT GPIOC
@@ -114,8 +114,13 @@
 // #define DCLINK_PULLUP 30000
 // #define DCLINK_PULLDOWN 1000
 
+#if BOARD_VARIANT == 0
 #define LED_PIN GPIO_PIN_2
 #define LED_PORT GPIOB
+#elif BOARD_VARIANT == 1	// For Bluepill, STMF103C8
+#define LED_PIN GPIO_PIN_13
+#define LED_PORT GPIOC
+#endif
 
 #if BOARD_VARIANT == 0
 #define BUZZER_PIN GPIO_PIN_4

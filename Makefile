@@ -51,7 +51,8 @@ Src/BLDC_controller.c
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32f103xe.s
+startup_stm32f103xb.s
+#startup_stm32f103xe.s
 
 #######################################
 # binaries
@@ -65,6 +66,7 @@ AR = $(PREFIX)ar
 SZ = $(PREFIX)size
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
+GDB= $(PREFIX)gdb
 
 #######################################
 # CFLAGS
@@ -88,7 +90,8 @@ AS_DEFS =
 # C defines
 C_DEFS =  \
 -DUSE_HAL_DRIVER \
--DSTM32F103xE
+-DSTM32F103xB
+#-DSTM32F103xE
 
 
 # AS includes
@@ -127,7 +130,8 @@ endif
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32F103RCTx_FLASH.ld
+#LDSCRIPT = STM32F103RCTx_FLASH.ld
+LDSCRIPT = STM32F103C8Tx_FLASH.ld
 
 # libraries
 LIBS = -lc -lm -lnosys
@@ -175,11 +179,15 @@ format:
 clean:
 	-rm -fR .dep $(BUILD_DIR)
 
-flash:
+flash:	$(BUILD_DIR)/$(TARGET).bin
 	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8000000
 
 unlock:
 	openocd -f interface/stlink-v2.cfg -f target/stm32f1x.cfg -c init -c "reset halt" -c "stm32f1x unlock 0"
+
+gdb:	$(BUILD_DIR)/$(TARGET).elf
+#       st-util -p 4242 & // you may type this once
+	$(GDB) --eval-command="target extended-remote :4242" $(BUILD_DIR)/$(TARGET).elf
 
 #######################################
 # dependencies
