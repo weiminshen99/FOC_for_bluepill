@@ -144,7 +144,7 @@
 #define TRQ_MODE        3               // [-] TORQUE mode
 
 // Enable/Disable Motor
-#define MOTOR_LEFT_ENA                  // [-] Enable LEFT motor.  Comment-out if this motor is not needed to be operational
+//#define MOTOR_LEFT_ENA                  // [-] Enable LEFT motor.  Comment-out if this motor is not needed
 #define MOTOR_RIGHT_ENA                 // [-] Enable RIGHT motor. Comment-out if this motor is not needed to be operational
 
 // Control selections
@@ -204,7 +204,7 @@
  * MID:       mid ADC1-value while poti at mid-position (INPUT_MIN - INPUT_MAX)
  * MAX:       max ADC2-value while poti at maximum-position (0 - 4095)
  * DEADBAND:  how much of the center position is considered 'center' (100 = values -100 to 100 are considered 0)
- * 
+ *
  * Dual-inputs
  * PRI_INPUT: Primary   Input. These limits will be used for the input with priority 0
  * AUX_INPUT: Auxiliary Input. These limits will be used for the input with priority 1

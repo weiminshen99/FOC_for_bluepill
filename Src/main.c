@@ -1,4 +1,7 @@
 /*
+*
+* Copyright (C) 2022 Wei-Min Shen <weiminshen99@gmail.com>
+*
 * This file is part of the hoverboard-firmware-hack project.
 *
 * Copyright (C) 2017-2018 Rene Hopf <renehopf@mac.com>
@@ -107,11 +110,11 @@ extern volatile uint32_t buzzerTimer;
 volatile uint32_t main_loop_counter;
 int16_t batVoltageCalib;         // global variable for calibrated battery voltage
 int16_t board_temp_deg_c;        // global variable for calibrated temperature in degrees Celsius
-int16_t left_dc_curr;            // global variable for Left DC Link current 
+int16_t left_dc_curr;            // global variable for Left DC Link current
 int16_t right_dc_curr;           // global variable for Right DC Link current
-int16_t dc_curr;                 // global variable for Total DC Link current 
-int16_t cmdL;                    // global variable for Left Command 
-int16_t cmdR;                    // global variable for Right Command 
+int16_t dc_curr;                 // global variable for Total DC Link current
+int16_t cmdL;                    // global variable for Left Command
+int16_t cmdR;                    // global variable for Right Command
 
 //------------------------------------------------------------------------
 // Local variables
@@ -137,26 +140,12 @@ static uint8_t sideboard_leds_L;
 static uint8_t sideboard_leds_R;
 #endif
 
-#ifdef VARIANT_TRANSPOTTER
-  uint8_t  nunchuk_connected;
-  extern float    setDistance;  
-
-  static uint8_t  checkRemote = 0;
-  static uint16_t distance;
-  static float    steering;
-  static int      distanceErr;  
-  static int      lastDistance = 0;
-  static uint16_t transpotter_counter = 0;
-#endif
-
-static int16_t    speed;                // local variable for speed. -1000 to 1000
-#ifndef VARIANT_TRANSPOTTER
-  static int16_t  steer;                // local variable for steering. -1000 to 1000
-  static int16_t  steerRateFixdt;       // local fixed-point variable for steering rate limiter
-  static int16_t  speedRateFixdt;       // local fixed-point variable for speed rate limiter
-  static int32_t  steerFixdt;           // local fixed-point variable for steering low-pass filter
-  static int32_t  speedFixdt;           // local fixed-point variable for speed low-pass filter
-#endif
+static int16_t  speed;                // local variable for speed. -1000 to 1000
+static int16_t  steer;                // local variable for steering. -1000 to 1000
+static int16_t  steerRateFixdt;       // local fixed-point variable for steering rate limiter
+static int16_t  speedRateFixdt;       // local fixed-point variable for speed rate limiter
+static int32_t  steerFixdt;           // local fixed-point variable for steering low-pass filter
+static int32_t  speedFixdt;           // local fixed-point variable for speed low-pass filter
 
 static uint32_t    buzzerTimer_prev = 0;
 static uint32_t    inactivity_timeout_counter;
@@ -169,17 +158,52 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
   static uint16_t max_speed;
 #endif
 
-void PC13_led_init(void)
-{
-  volatile uint32_t* RCC_APB2ENR = (volatile uint32_t*) 0x40021018;     // RCC
-  volatile uint32_t* GPIOC_CRH =  (volatile uint32_t*) 0x40011004;      // Port C
-  *RCC_APB2ENR |= (0b1<<4);     // set bit4=1 to enable Port C
-  *GPIOC_CRH &= ~(0b1111<<20);  // clear PC13, bits 23..20
-  *GPIOC_CRH |=  (0b0110<<20);  // set the bits to 0110 for Mode Output 2
+
+// ===========================================================
+// System Clock Configuration
+// ===========================================================
+void SystemClock_Config(void) {
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInit;
+
+  // Initializes the CPU, AHB and APB busses clocks
+  RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState            = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 16;
+  RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL          = RCC_PLL_MUL16;
+  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+  // Initializes the CPU, AHB and APB busses clocks
+  RCC_ClkInitStruct.ClockType           = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource        = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider       = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider      = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider      = RCC_HCLK_DIV1;
+
+  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
+
+  PeriphClkInit.PeriphClockSelection    = RCC_PERIPHCLK_ADC;
+  // PeriphClkInit.AdcClockSelection    = RCC_ADCPCLK2_DIV8;  // 8 MHz
+  PeriphClkInit.AdcClockSelection       = RCC_ADCPCLK2_DIV4;  // 16 MHz
+  HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
+
+  // Configure the Systick interrupt time
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
+
+  // Configure the Systick
+  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+
+  // SysTick_IRQn interrupt configuration
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-int main(void) {
-
+//===================================================
+int main(void) // MAIN LOOP
+//===================================================
+{
   HAL_Init();
   __HAL_RCC_AFIO_CLK_ENABLE();
   HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
@@ -203,32 +227,20 @@ int main(void) {
 
   __HAL_RCC_DMA1_CLK_DISABLE();
 
-  PC13_led_init();
-
-  while (HAL_InitTick(0) != HAL_ERROR) {
-        // this means the timers are started successfully
-	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
-	HAL_Delay(100);
-  }
-}
-
-/*
   MX_GPIO_Init();
   MX_TIM_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
-  BLDC_Init();        // BLDC Controller Init
+  BLDC_Init();
 
   HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, GPIO_PIN_SET);   // Activate Latch
-  Input_Lim_Init();   // Input Limitations Init
-  Input_Init();       // Input Init
+
+//  Input_Lim_Init();   // Input Limitations Init
+//  Input_Init();       // Input Init
 
   HAL_ADC_Start(&hadc1);
   HAL_ADC_Start(&hadc2);
 
-  poweronMelody();
-  HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-  
   int32_t board_temp_adcFixdt = adc_buffer.temp << 16;  // Fixed-point filter output initialized with current ADC converted to fixed-point
   int16_t board_temp_adcFilt  = adc_buffer.temp;
 
@@ -252,38 +264,51 @@ int main(void) {
       rtP_Left.n_max = rtP_Right.n_max = MULTI_MODE_M1_N_MOT_MAX << 4;
       rtP_Left.i_max = rtP_Right.i_max = (MULTI_MODE_M1_I_MOT_MAX * A2BIT_CONV) << 4;
     }
-
     printf("Drive mode %i selected: max_speed:%i acc_rate:%i \r\n", drive_mode, max_speed, rate);
-  #endif
 
-  // Loop until button is released
-  while(HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN)) { HAL_Delay(10); }
-
-  #ifdef MULTI_MODE_DRIVE
     // Wait until triggers are released
     while((adc_buffer.l_rx2 + adc_buffer.l_tx2) >= (input1[0].min + input2[0].min)) { HAL_Delay(10); }
   #endif
 
-  while(1) {
-    if (buzzerTimer - buzzerTimer_prev > 16*DELAY_IN_MAIN_LOOP) {   // 1 ms = 16 ticks buzzerTimer
+  poweronMelody();
 
-    readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
-    calcAvgSpeed();                       // Calculate average measured speed: speedAvg, speedAvgAbs
+  while(1) { // THE MAIN LOOP
 
-    #ifndef VARIANT_TRANSPOTTER
-      // ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
-      if (enable == 0 && !rtY_Left.z_errCode && !rtY_Right.z_errCode && 
-          ABS(input1[inIdx].cmd) < 50 && ABS(input2[inIdx].cmd) < 50){
-        beepShort(6);                     // make 2 beeps indicating the motor enable
-        beepShort(4); HAL_Delay(100);
-        steerFixdt = speedFixdt = 0;      // reset filters
-        enable = 1;                       // enable motors
-        #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
-        printf("-- Motors enabled --\r\n");
-        #endif
-      }
+//  if (buzzerTimer - buzzerTimer_prev > 16*DELAY_IN_MAIN_LOOP) {   // 1 ms = 16 ticks buzzerTimer
 
-      // ####### VARIANT_HOVERCAR #######
+	readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
+	calcAvgSpeed();                       // Calculate average measured speed: speedAvg, speedAvgAbs
+
+	HAL_GPIO_WritePin(LED_PORT, LED_PIN, 1);
+
+    	// ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
+      	//if (enable == 0 && !rtY_Right.z_errCode && ABS(input1[inIdx].cmd) < 50 && ABS(input2[inIdx].cmd) < 50) {
+	if (enable == 0) {
+        	beepShort(6);                     // make 2 beeps indicating the motor enable
+        	beepShort(4);
+		HAL_GPIO_WritePin(LED_PORT, LED_PIN, 0);
+		HAL_Delay(100);
+        	steerFixdt = speedFixdt = 0;      // reset filters
+        	enable = 1;                       // enable motors
+        	#if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+        	printf("-- Motors enabled --\r\n");
+        	#endif
+      	}
+
+    	//this may beep too
+	//HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+	HAL_Delay(100);
+
+    	// Update states
+    	inIdx_prev = inIdx;
+    	buzzerTimer_prev = buzzerTimer;
+    	main_loop_counter++;
+  }
+}
+
+
+
+/*
       #if defined(VARIANT_HOVERCAR) || defined(VARIANT_SKATEBOARD) || defined(ELECTRIC_BRAKE_ENABLE)
         uint16_t speedBlend;                                        // Calculate speed Blend, a number between [0, 1] in fixdt(0,16,15)
         speedBlend = (uint16_t)(((CLAMP(speedAvgAbs,10,60) - 10) << 15) / 50); // speedBlend [0,1] is within [10 rpm, 60rpm]
@@ -357,11 +382,11 @@ int main(void) {
       }
       #endif
 
-      #if defined(TANK_STEERING) && !defined(VARIANT_HOVERCAR) && !defined(VARIANT_SKATEBOARD) 
+      #if defined(TANK_STEERING) && !defined(VARIANT_HOVERCAR) && !defined(VARIANT_SKATEBOARD)
         // Tank steering (no mixing)
-        cmdL = steer; 
+        cmdL = steer;
         cmdR = speed;
-      #else 
+      #else
         // ####### MIXER #######
         mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);   // This function implements the equations above
       #endif
@@ -378,102 +403,6 @@ int main(void) {
       #else
         pwml = cmdL;
       #endif
-    #endif
-
-    #ifdef VARIANT_TRANSPOTTER
-      distance    = CLAMP(input1[inIdx].cmd - 180, 0, 4095);
-      steering    = (input2[inIdx].cmd - 2048) / 2048.0;
-      distanceErr = distance - (int)(setDistance * 1345);
-
-      if (nunchuk_connected == 0) {
-        cmdL = cmdL * 0.8f + (CLAMP(distanceErr + (steering*((float)MAX(ABS(distanceErr), 50)) * ROT_P), -850, 850) * -0.2f);
-        cmdR = cmdR * 0.8f + (CLAMP(distanceErr - (steering*((float)MAX(ABS(distanceErr), 50)) * ROT_P), -850, 850) * -0.2f);
-        if (distanceErr > 0) {
-          enable = 1;
-        }
-        if (distanceErr > -300) {
-          #ifdef INVERT_R_DIRECTION
-            pwmr = cmdR;
-          #else
-            pwmr = -cmdR;
-          #endif
-          #ifdef INVERT_L_DIRECTION
-            pwml = -cmdL;
-          #else
-            pwml = cmdL;
-          #endif
-
-          if (checkRemote) {
-            if (!HAL_GPIO_ReadPin(LED_PORT, LED_PIN)) {
-              //enable = 1;
-            } else {
-              enable = 0;
-            }
-          }
-        } else {
-          enable = 0;
-        }
-        timeoutCntGen = 0;
-        timeoutFlgGen = 0;
-      }
-
-      if (timeoutFlgGen) {
-        pwml = 0;
-        pwmr = 0;
-        enable = 0;
-        #ifdef SUPPORT_LCD
-          LCD_SetLocation(&lcd,  0, 0); LCD_WriteString(&lcd, "Len:");
-          LCD_SetLocation(&lcd,  8, 0); LCD_WriteString(&lcd, "m(");
-          LCD_SetLocation(&lcd, 14, 0); LCD_WriteString(&lcd, "m)");
-        #endif
-        HAL_Delay(1000);
-        nunchuk_connected = 0;
-      }
-
-      if ((distance / 1345.0) - setDistance > 0.5 && (lastDistance / 1345.0) - setDistance > 0.5) { // Error, robot too far away!
-        enable = 0;
-        beepLong(5);
-        #ifdef SUPPORT_LCD
-          LCD_ClearDisplay(&lcd);
-          HAL_Delay(5);
-          LCD_SetLocation(&lcd, 0, 0); LCD_WriteString(&lcd, "Emergency Off!");
-          LCD_SetLocation(&lcd, 0, 1); LCD_WriteString(&lcd, "Keeper too fast.");
-        #endif
-        poweroff();
-      }
-
-      #ifdef SUPPORT_NUNCHUK
-        if (transpotter_counter % 500 == 0) {
-          if (nunchuk_connected == 0 && enable == 0) {
-              if(Nunchuk_Read() == NUNCHUK_CONNECTED) {
-                #ifdef SUPPORT_LCD
-                  LCD_SetLocation(&lcd, 0, 0); LCD_WriteString(&lcd, "Nunchuk Control");
-                #endif
-                nunchuk_connected = 1;
-	      }
-	    } else {
-              nunchuk_connected = 0;
-	    }
-          }
-        }   
-      #endif
-
-      #ifdef SUPPORT_LCD
-        if (transpotter_counter % 100 == 0) {
-          if (LCDerrorFlag == 1 && enable == 0) {
-
-          } else {
-            if (nunchuk_connected == 0) {
-              LCD_SetLocation(&lcd,  4, 0); LCD_WriteFloat(&lcd,distance/1345.0,2);
-              LCD_SetLocation(&lcd, 10, 0); LCD_WriteFloat(&lcd,setDistance,2);
-            }
-            LCD_SetLocation(&lcd,  4, 1); LCD_WriteFloat(&lcd,batVoltage, 1);
-            // LCD_SetLocation(&lcd, 11, 1); LCD_WriteFloat(&lcd,MAX(ABS(currentR), ABS(currentL)),2);
-          }
-        }
-      #endif
-      transpotter_counter++;
-    #endif
 
     // ####### SIDEBOARDS HANDLING #######
     #if defined(SIDEBOARD_SERIAL_USART2)
@@ -488,7 +417,7 @@ int main(void) {
     #if defined(FEEDBACK_SERIAL_USART3)
       sideboardLeds(&sideboard_leds_R);
     #endif
-    
+
 
     // ####### CALC BOARD TEMPERATURE #######
     filtLowPass32(adc_buffer.temp, TEMP_FILT_COEF, &board_temp_adcFixdt);
@@ -499,13 +428,12 @@ int main(void) {
     batVoltageCalib = batVoltage * BAT_CALIB_REAL_VOLTAGE / BAT_CALIB_ADC;
 
     // ####### CALC DC LINK CURRENT #######
-    left_dc_curr  = -(rtU_Left.i_DCLink * 100) / A2BIT_CONV;   // Left DC Link Current * 100 
     right_dc_curr = -(rtU_Right.i_DCLink * 100) / A2BIT_CONV;  // Right DC Link Current * 100
     dc_curr       = left_dc_curr + right_dc_curr;            // Total DC Link Current * 100
 
     // ####### DEBUG SERIAL OUT #######
     #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
-      if (main_loop_counter % 25 == 0) {    // Send data periodically every 125 ms      
+      if (main_loop_counter % 25 == 0) {    // Send data periodically every 125 ms
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
@@ -600,7 +528,7 @@ int main(void) {
     }
 
     #if defined(CRUISE_CONTROL_SUPPORT) || defined(STANDSTILL_HOLD_ENABLE)
-      if ((abs(rtP_Left.n_cruiseMotTgt)  > 50 && rtP_Left.b_cruiseCtrlEna) || 
+      if ((abs(rtP_Left.n_cruiseMotTgt)  > 50 && rtP_Left.b_cruiseCtrlEna) ||
           (abs(rtP_Right.n_cruiseMotTgt) > 50 && rtP_Right.b_cruiseCtrlEna)) {
         inactivity_timeout_counter = 0;
       }
@@ -612,59 +540,4 @@ int main(void) {
       #endif
       poweroff();
     }
-
-
-    // HAL_GPIO_TogglePin(LED_PORT, LED_PIN);                 // This is to measure the main() loop duration with an oscilloscope connected to LED_PIN
-    // Update states
-    inIdx_prev = inIdx;
-    buzzerTimer_prev = buzzerTimer;
-    main_loop_counter++;
-    }
-  }
-}
-
-
-// ===========================================================
-/** System Clock Configuration
 */
-void SystemClock_Config(void) {
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-  /**Initializes the CPU, AHB and APB busses clocks
-    */
-  RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState            = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = 16;
-  RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL          = RCC_PLL_MUL16;
-  HAL_RCC_OscConfig(&RCC_OscInitStruct);
-
-  /**Initializes the CPU, AHB and APB busses clocks
-    */
-  RCC_ClkInitStruct.ClockType           = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource        = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider       = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider      = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider      = RCC_HCLK_DIV1;
-
-  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
-
-  PeriphClkInit.PeriphClockSelection    = RCC_PERIPHCLK_ADC;
-  // PeriphClkInit.AdcClockSelection    = RCC_ADCPCLK2_DIV8;  // 8 MHz
-  PeriphClkInit.AdcClockSelection       = RCC_ADCPCLK2_DIV4;  // 16 MHz
-  HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
-
-  /**Configure the Systick interrupt time
-    */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
-
-  /**Configure the Systick
-    */
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-  /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}

@@ -278,7 +278,7 @@ void Input_Init(void) {
     PPM_Init();
   #endif
 
- #if defined(CONTROL_PWM_LEFT) || defined(CONTROL_PWM_RIGHT)
+  #if defined(CONTROL_PWM_LEFT) || defined(CONTROL_PWM_RIGHT)
     PWM_Init();
   #endif
 
@@ -318,7 +318,7 @@ void Input_Init(void) {
         EE_ReadVariable(VirtAddVarTab[ 8+8*i] , &readVal); input2[i].min = (int16_t)readVal;
         EE_ReadVariable(VirtAddVarTab[ 9+8*i] , &readVal); input2[i].mid = (int16_t)readVal;
         EE_ReadVariable(VirtAddVarTab[10+8*i] , &readVal); input2[i].max = (int16_t)readVal;
-      
+
         printf("Limits Input1: TYP:%i MIN:%i MID:%i MAX:%i\r\nLimits Input2: TYP:%i MIN:%i MID:%i MAX:%i\r\n",
           input1[i].typ, input1[i].min, input1[i].mid, input1[i].max,
           input2[i].typ, input2[i].min, input2[i].mid, input2[i].max);
@@ -477,13 +477,13 @@ void calcAvgSpeed(void) {
       // Average only if both motors are enabled
       #if defined(MOTOR_LEFT_ENA)
         speedAvg /= 2;
-      #endif  
+      #endif
     #endif
 
     // Handle the case when SPEED_COEFFICIENT sign is negative (which is when most significant bit is 1)
     if (SPEED_COEFFICIENT & (1 << 16)) {
       speedAvg    = -speedAvg;
-    } 
+    }
     speedAvgAbs   = abs(speedAvg);
 }
 

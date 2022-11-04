@@ -110,7 +110,7 @@ void DMA1_Channel1_IRQHandler(void) {
   curL_phaA = (int16_t)(offsetrlA - adc_buffer.rlA);
   curL_phaB = (int16_t)(offsetrlB - adc_buffer.rlB);
   curL_DC   = (int16_t)(offsetdcl - adc_buffer.dcl);
-  
+
   // Get Right motor currents
   curR_phaB = (int16_t)(offsetrrB - adc_buffer.rrB);
   curR_phaC = (int16_t)(offsetrrC - adc_buffer.rrC);
@@ -118,12 +118,6 @@ void DMA1_Channel1_IRQHandler(void) {
 
   // Disable PWM when current limit is reached (current chopping)
   // This is the Level 2 of current protection. The Level 1 should kick in first given by I_MOT_MAX
-  if(ABS(curL_DC) > curDC_max || enable == 0) {
-    LEFT_TIM->BDTR &= ~TIM_BDTR_MOE;
-  } else {
-    LEFT_TIM->BDTR |= TIM_BDTR_MOE;
-  }
-
   if(ABS(curR_DC)  > curDC_max || enable == 0) {
     RIGHT_TIM->BDTR &= ~TIM_BDTR_MOE;
   } else {
@@ -156,7 +150,6 @@ void DMA1_Channel1_IRQHandler(void) {
 
   // ############################### MOTOR CONTROL ###############################
 
-  int ul, vl, wl;
   int ur, vr, wr;
   static boolean_T OverrunFlag = false;
 
@@ -168,46 +161,9 @@ void DMA1_Channel1_IRQHandler(void) {
 
   /* Make sure to stop BOTH motors in case of an error */
   enableFin = enable && !rtY_Left.z_errCode && !rtY_Right.z_errCode;
- 
-  // ========================= LEFT MOTOR ============================ 
-    // Get hall sensors values
-    uint8_t hall_ul = !(LEFT_HALL_U_PORT->IDR & LEFT_HALL_U_PIN);
-    uint8_t hall_vl = !(LEFT_HALL_V_PORT->IDR & LEFT_HALL_V_PIN);
-    uint8_t hall_wl = !(LEFT_HALL_W_PORT->IDR & LEFT_HALL_W_PIN);
 
-    /* Set motor inputs here */
-    rtU_Left.b_motEna     = enableFin;
-    rtU_Left.z_ctrlModReq = ctrlModReq;  
-    rtU_Left.r_inpTgt     = pwml;
-    rtU_Left.b_hallA      = hall_ul;
-    rtU_Left.b_hallB      = hall_vl;
-    rtU_Left.b_hallC      = hall_wl;
-    rtU_Left.i_phaAB      = curL_phaA;
-    rtU_Left.i_phaBC      = curL_phaB;
-    rtU_Left.i_DCLink     = curL_DC;
-    // rtU_Left.a_mechAngle   = ...; // Angle input in DEGREES [0,360] in fixdt(1,16,4) data type. If `angle` is float use `= (int16_t)floor(angle * 16.0F)` If `angle` is integer use `= (int16_t)(angle << 4)`
-    
-    /* Step the controller */
-    #ifdef MOTOR_LEFT_ENA    
-    BLDC_controller_step(rtM_Left);
-    #endif
 
-    /* Get motor outputs here */
-    ul            = rtY_Left.DC_phaA;
-    vl            = rtY_Left.DC_phaB;
-    wl            = rtY_Left.DC_phaC;
-  // errCodeLeft  = rtY_Left.z_errCode;
-  // motSpeedLeft = rtY_Left.n_mot;
-  // motAngleLeft = rtY_Left.a_elecAngle;
-
-    /* Apply commands */
-    LEFT_TIM->LEFT_TIM_U    = (uint16_t)CLAMP(ul + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
-    LEFT_TIM->LEFT_TIM_V    = (uint16_t)CLAMP(vl + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
-    LEFT_TIM->LEFT_TIM_W    = (uint16_t)CLAMP(wl + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
-  // =================================================================
-  
-
-  // ========================= RIGHT MOTOR ===========================  
+  // ========================= RIGHT MOTOR ===========================
     // Get hall sensors values
     uint8_t hall_ur = !(RIGHT_HALL_U_PORT->IDR & RIGHT_HALL_U_PIN);
     uint8_t hall_vr = !(RIGHT_HALL_V_PORT->IDR & RIGHT_HALL_V_PIN);
@@ -224,7 +180,7 @@ void DMA1_Channel1_IRQHandler(void) {
     rtU_Right.i_phaBC       = curR_phaC;
     rtU_Right.i_DCLink      = curR_DC;
     // rtU_Right.a_mechAngle   = ...; // Angle input in DEGREES [0,360] in fixdt(1,16,4) data type. If `angle` is float use `= (int16_t)floor(angle * 16.0F)` If `angle` is integer use `= (int16_t)(angle << 4)`
-    
+
     /* Step the controller */
     #ifdef MOTOR_RIGHT_ENA
     BLDC_controller_step(rtM_Right);
@@ -246,7 +202,7 @@ void DMA1_Channel1_IRQHandler(void) {
 
   /* Indicate task complete */
   OverrunFlag = false;
- 
+
  // ###############################################################################
 
 }
