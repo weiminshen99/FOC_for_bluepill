@@ -1,4 +1,10 @@
-Nov-6-2022: Wei-Min Shen, trying to port the code on Bluepill
+======================
+Nov-6-2022: 
+Wei-Min Shen, trying to port this program to Bluepill
+I used the examples from the repos weiminshen99/GD32-hover-master-slave.
+
+After this is working on Bluebill, we do the same for BLDC/Sin.
+======================
 
 # hoverboard-firmware-hack-FOC
 [![Build status](https://github.com/EFeru/hoverboard-firmware-hack-FOC/actions/workflows/build_on_commit.yml/badge.svg)](https://github.com/EFeru/hoverboard-firmware-hack-FOC/actions/workflows/build_on_commit.yml)

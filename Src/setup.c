@@ -496,6 +496,12 @@ void MX_TIM_Init(void)
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_2);
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_3);
 
+  // Enable TIMER_INT_UP interrupt and set priority
+  //nvic_irq_enable(TIMER0_BRK_UP_TRG_COM_IRQn, 0, 0); // GD32 example
+  //timer_interrupt_enable(TIMER_BLDC, TIMER_INT_UP);  // GD32 example
+  HAL_NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn, 0, 0); // right?
+  HAL_NVIC_EnableIRQ(&htim_right, TIM1_INT_IRQn); // right?
+
   __HAL_TIM_ENABLE(&htim_right);
 }
 
