@@ -34,12 +34,6 @@
 #include "rtwtypes.h"
 #include "comms.h"
 
-#if defined(DEBUG_I2C_LCD) || defined(SUPPORT_LCD)
-#include "hd44780.h"
-#endif
-
-void SystemClock_Config(void);
-
 //------------------------------------------------------------------------
 // Global variables set externally
 //------------------------------------------------------------------------
@@ -48,25 +42,21 @@ extern TIM_HandleTypeDef htim_right;
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
 extern volatile adc_buf_t adc_buffer;
-#if defined(DEBUG_I2C_LCD) || defined(SUPPORT_LCD)
-  extern LCD_PCF8574_HandleTypeDef lcd;
-  extern uint8_t LCDerrorFlag;
-#endif
 
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
 volatile uint8_t uart_buf[200];
 
+//----------------------------------------------------------
 // Matlab defines - from auto-code generation
-//---------------
 extern P    rtP_Left;                   /* Block parameters (auto storage) */
 extern P    rtP_Right;                  /* Block parameters (auto storage) */
 extern ExtY rtY_Left;                   /* External outputs */
 extern ExtY rtY_Right;                  /* External outputs */
 extern ExtU rtU_Left;                   /* External inputs */
 extern ExtU rtU_Right;                  /* External inputs */
-//---------------
+//----------------------------------------------------------
 
 extern uint8_t     inIdx;               // input index used for dual-inputs
 extern uint8_t     inIdx_prev;
@@ -87,19 +77,7 @@ extern uint8_t enable;                  // global variable for motor enable
 
 extern int16_t batVoltage;              // global variable for battery voltage
 
-#if defined(SIDEBOARD_SERIAL_USART2)
-extern SerialSideboard Sideboard_L;
-#endif
-#if defined(SIDEBOARD_SERIAL_USART3)
-extern SerialSideboard Sideboard_R;
-#endif
-#if (defined(CONTROL_PPM_LEFT) && defined(DEBUG_SERIAL_USART3)) || (defined(CONTROL_PPM_RIGHT) && defined(DEBUG_SERIAL_USART2))
-extern volatile uint16_t ppm_captured_value[PPM_NUM_CHANNELS+1];
-#endif
-#if (defined(CONTROL_PWM_LEFT) && defined(DEBUG_SERIAL_USART3)) || (defined(CONTROL_PWM_RIGHT) && defined(DEBUG_SERIAL_USART2))
-extern volatile uint16_t pwm_captured_ch1_value;
-extern volatile uint16_t pwm_captured_ch2_value;
-#endif
+uint8_t hall_tmp;
 
 
 //------------------------------------------------------------------------
@@ -110,7 +88,6 @@ extern volatile uint32_t buzzerTimer;
 volatile uint32_t main_loop_counter;
 int16_t batVoltageCalib;         // global variable for calibrated battery voltage
 int16_t board_temp_deg_c;        // global variable for calibrated temperature in degrees Celsius
-int16_t left_dc_curr;            // global variable for Left DC Link current
 int16_t right_dc_curr;           // global variable for Right DC Link current
 int16_t dc_curr;                 // global variable for Total DC Link current
 int16_t cmdL;                    // global variable for Left Command
@@ -119,26 +96,6 @@ int16_t cmdR;                    // global variable for Right Command
 //------------------------------------------------------------------------
 // Local variables
 //------------------------------------------------------------------------
-#if defined(FEEDBACK_SERIAL_USART2) || defined(FEEDBACK_SERIAL_USART3)
-typedef struct{
-  uint16_t  start;
-  int16_t   cmd1;
-  int16_t   cmd2;
-  int16_t   speedR_meas;
-  int16_t   speedL_meas;
-  int16_t   batVoltage;
-  int16_t   boardTemp;
-  uint16_t  cmdLed;
-  uint16_t  checksum;
-} SerialFeedback;
-static SerialFeedback Feedback;
-#endif
-#if defined(FEEDBACK_SERIAL_USART2)
-static uint8_t sideboard_leds_L;
-#endif
-#if defined(FEEDBACK_SERIAL_USART3)
-static uint8_t sideboard_leds_R;
-#endif
 
 static int16_t  speed;                // local variable for speed. -1000 to 1000
 static int16_t  steer;                // local variable for steering. -1000 to 1000
@@ -230,7 +187,6 @@ int main(void) // MAIN LOOP
   MX_GPIO_Init();
   MX_TIM_Init();
   MX_ADC1_Init();
-  MX_ADC2_Init();
   BLDC_Init();
 
   HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, GPIO_PIN_SET);   // Activate Latch
@@ -239,7 +195,6 @@ int main(void) // MAIN LOOP
 //  Input_Init();       // Input Init
 
   HAL_ADC_Start(&hadc1);
-  HAL_ADC_Start(&hadc2);
 
   int32_t board_temp_adcFixdt = adc_buffer.temp << 16;  // Fixed-point filter output initialized with current ADC converted to fixed-point
   int16_t board_temp_adcFilt  = adc_buffer.temp;
@@ -265,9 +220,6 @@ int main(void) // MAIN LOOP
       rtP_Left.i_max = rtP_Right.i_max = (MULTI_MODE_M1_I_MOT_MAX * A2BIT_CONV) << 4;
     }
     printf("Drive mode %i selected: max_speed:%i acc_rate:%i \r\n", drive_mode, max_speed, rate);
-
-    // Wait until triggers are released
-    while((adc_buffer.l_rx2 + adc_buffer.l_tx2) >= (input1[0].min + input2[0].min)) { HAL_Delay(10); }
   #endif
 
   poweronMelody();
@@ -277,13 +229,20 @@ int main(void) // MAIN LOOP
 //  if (buzzerTimer - buzzerTimer_prev > 16*DELAY_IN_MAIN_LOOP) {   // 1 ms = 16 ticks buzzerTimer
 
 	readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
+	input1[inIdx].cmd = 49;
+	input2[inIdx].cmd = 49;
+
 	calcAvgSpeed();                       // Calculate average measured speed: speedAvg, speedAvgAbs
 
-	HAL_GPIO_WritePin(LED_PORT, LED_PIN, 1);
+	hall_tmp = !(RIGHT_HALL_U_PORT->IDR & RIGHT_HALL_U_PIN);
+    	hall_tmp = !(RIGHT_HALL_V_PORT->IDR & RIGHT_HALL_V_PIN);
+    	hall_tmp = !(RIGHT_HALL_W_PORT->IDR & RIGHT_HALL_W_PIN);
+
+	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+	// gdb check: rtY_Right.z_errCode = 0;
 
     	// ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
-      	//if (enable == 0 && !rtY_Right.z_errCode && ABS(input1[inIdx].cmd) < 50 && ABS(input2[inIdx].cmd) < 50) {
-	if (enable == 0) {
+      	if (enable == 0 && !rtY_Right.z_errCode && ABS(input1[inIdx].cmd) < 50 && ABS(input2[inIdx].cmd) < 50) {
         	beepShort(6);                     // make 2 beeps indicating the motor enable
         	beepShort(4);
 		HAL_GPIO_WritePin(LED_PORT, LED_PIN, 0);
@@ -295,8 +254,7 @@ int main(void) // MAIN LOOP
         	#endif
       	}
 
-    	//this may beep too
-	//HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+	//HAL_GPIO_WritePin(LED_PORT, LED_PIN, 1);
 	HAL_Delay(100);
 
     	// Update states

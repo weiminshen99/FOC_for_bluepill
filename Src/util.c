@@ -83,7 +83,7 @@ DW       rtDW_Left;                     /* Observable states */
 ExtU     rtU_Left;                      /* External inputs */
 ExtY     rtY_Left;                      /* External outputs */
 
-P        rtP_Right;                     /* Block parameters (auto storage) */
+P 	 rtP_Right;                     /* Block parameters (auto storage) */
 DW       rtDW_Right;                    /* Observable states */
 ExtU     rtU_Right;                     /* External inputs */
 ExtY     rtY_Right;                     /* External outputs */
@@ -105,7 +105,7 @@ uint8_t  timeoutFlgADC    = 0;          // Timeout Flag for ADC Protection:    0
 uint8_t  timeoutFlgSerial = 0;          // Timeout Flag for Rx Serial command: 0 = OK, 1 = Problem detected (line disconnected or wrong Rx data)
 
 uint8_t  ctrlModReqRaw = CTRL_MOD_REQ;
-uint8_t  ctrlModReq    = CTRL_MOD_REQ;  // Final control mode request 
+uint8_t  ctrlModReq    = CTRL_MOD_REQ;  // Final control mode request
 
 #if defined(DEBUG_I2C_LCD) || defined(SUPPORT_LCD)
 LCD_PCF8574_HandleTypeDef lcd;
@@ -216,7 +216,7 @@ static uint8_t standstillAcv = 0;
     #endif
     return ch;
   }
-  
+
   #ifdef __GNUC__
     int _write(int file, char *data, int len) {
       int i;
@@ -226,18 +226,18 @@ static uint8_t standstillAcv = 0;
   #endif
 #endif
 
- 
+
 /* =========================== Initialization Functions =========================== */
 
 void BLDC_Init(void) {
-  /* Set BLDC controller parameters */ 
+  /* Set BLDC controller parameters */
   rtP_Left.b_angleMeasEna       = 0;            // Motor angle input: 0 = estimated angle, 1 = measured angle (e.g. if encoder is available)
   rtP_Left.z_selPhaCurMeasABC   = 0;            // Left motor measured current phases {Green, Blue} = {iA, iB} -> do NOT change
   rtP_Left.z_ctrlTypSel         = CTRL_TYP_SEL;
   rtP_Left.b_diagEna            = DIAG_ENA;
   rtP_Left.i_max                = (I_MOT_MAX * A2BIT_CONV) << 4;        // fixdt(1,16,4)
   rtP_Left.n_max                = N_MOT_MAX << 4;                       // fixdt(1,16,4)
-  rtP_Left.b_fieldWeakEna       = FIELD_WEAK_ENA; 
+  rtP_Left.b_fieldWeakEna       = FIELD_WEAK_ENA;
   rtP_Left.id_fieldWeakMax      = (FIELD_WEAK_MAX * A2BIT_CONV) << 4;   // fixdt(1,16,4)
   rtP_Left.a_phaAdvMax          = PHASE_ADV_MAX << 4;                   // fixdt(1,16,4)
   rtP_Left.r_fieldWeakHi        = FIELD_WEAK_HI << 4;                   // fixdt(1,16,4)

@@ -44,6 +44,7 @@ extern P    rtP_Left;
 extern DW   rtDW_Right;                 /* Observable states */
 extern ExtU rtU_Right;                  /* External inputs */
 extern ExtY rtY_Right;                  /* External outputs */
+extern P    rtP_Right;
 // ###############################################################################
 
 static int16_t pwm_margin;              /* This margin allows to have a window in the PWM signal for proper FOC Phase currents measurement */
@@ -87,8 +88,8 @@ static int32_t batVoltageFixdt  = (400 * BAT_CELLS * BAT_CALIB_ADC) / BAT_CALIB_
 void DMA1_Channel1_IRQHandler(void) {
 
   DMA1->IFCR = DMA_IFCR_CTCIF1;
-  // HAL_GPIO_WritePin(LED_PORT, LED_PIN, 1);
-  // HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+
+  HAL_GPIO_TogglePin(LED_PORT, LED_PIN); // to be used with gdb
 
   if(offsetcount < 2000) {  // calibrate ADC offsets
     offsetcount++;
@@ -105,11 +106,6 @@ void DMA1_Channel1_IRQHandler(void) {
     filtLowPass32(adc_buffer.batt1, BAT_FILT_COEF, &batVoltageFixdt);
     batVoltage = (int16_t)(batVoltageFixdt >> 16);  // convert fixed-point to integer
   }
-
-  // Get Left motor currents
-  curL_phaA = (int16_t)(offsetrlA - adc_buffer.rlA);
-  curL_phaB = (int16_t)(offsetrlB - adc_buffer.rlB);
-  curL_DC   = (int16_t)(offsetdcl - adc_buffer.dcl);
 
   // Get Right motor currents
   curR_phaB = (int16_t)(offsetrrB - adc_buffer.rrB);
@@ -142,7 +138,7 @@ void DMA1_Channel1_IRQHandler(void) {
   }
 
   // Adjust pwm_margin depending on the selected Control Type
-  if (rtP_Left.z_ctrlTypSel == FOC_CTRL) {
+  if (rtP_Right.z_ctrlTypSel == FOC_CTRL) {
     pwm_margin = 110;
   } else {
     pwm_margin = 0;

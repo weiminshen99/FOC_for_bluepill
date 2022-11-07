@@ -60,14 +60,14 @@ volatile adc_buf_t adc_buffer;
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
-  
+
   /* DMA1_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
   /* DMA1_Channel7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
-  
+
   huart2.Instance = USART2;
   huart2.Init.BaudRate = USART2_BAUD;
   huart2.Init.WordLength = USART2_WORDLENGTH;
@@ -119,11 +119,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
   /* USER CODE END USART2_MspInit 0 */
     /* USART2 clock enable */
     __HAL_RCC_USART2_CLK_ENABLE();
-  
+
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**USART2 GPIO Configuration    
+    /**USART2 GPIO Configuration
     PA2     ------> USART2_TX
-    PA3     ------> USART2_RX 
+    PA3     ------> USART2_RX
     */
     GPIO_InitStruct.Pin = GPIO_PIN_2;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -174,11 +174,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
   /* USER CODE END USART3_MspInit 0 */
     /* USART3 clock enable */
     __HAL_RCC_USART3_CLK_ENABLE();
-  
+
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**USART3 GPIO Configuration    
+    /**USART3 GPIO Configuration
     PB10     ------> USART3_TX
-    PB11     ------> USART3_RX 
+    PB11     ------> USART3_RX
     */
     GPIO_InitStruct.Pin = GPIO_PIN_10;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -356,7 +356,8 @@ void I2C_Init(void)
 */
 }
 
-void MX_GPIO_Init(void) {
+void MX_GPIO_Init(void)
+{
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
@@ -445,8 +446,8 @@ void MX_GPIO_Init(void) {
   HAL_GPIO_Init(RIGHT_TIM_WL_PORT, &GPIO_InitStruct);
 }
 
-void MX_TIM_Init(void) {
-
+void MX_TIM_Init(void)
+{
   __HAL_RCC_TIM1_CLK_ENABLE();
 
   TIM_MasterConfigTypeDef sMasterConfig;
@@ -498,7 +499,8 @@ void MX_TIM_Init(void) {
   __HAL_TIM_ENABLE(&htim_right);
 }
 
-void MX_ADC1_Init(void) {
+void MX_ADC1_Init(void)
+{
   ADC_MultiModeTypeDef multimode;
   ADC_ChannelConfTypeDef sConfig;
 
@@ -508,40 +510,27 @@ void MX_ADC1_Init(void) {
   hadc1.Init.ScanConvMode          = ADC_SCAN_ENABLE;
   hadc1.Init.ContinuousConvMode    = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-//  hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T8_TRGO; // no TIM8 on Bluepill
+// hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T8_TRGO; // original one
+// hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;  // <=== CORRECT?
+  hadc2.Init.ExternalTrigConv      = ADC_SOFTWARE_START; // should be externl_triggered?
   hadc1.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion       = 5;
   HAL_ADC_Init(&hadc1);
-  /**Enable or disable the remapping of ADC1_ETRGREG:
-    * ADC1 External Event regular conversion is connected to TIM8 TRG0
-    */
-//  __HAL_AFIO_REMAP_ADC1_ETRGREG_ENABLE(); // no TIM8 on Bluepill
 
-  /**Configure the ADC multi-mode
-    */
+  // Configure the ADC multi-mode
   multimode.Mode = ADC_DUALMODE_REGSIMULT;
   HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode);
 
   sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  sConfig.Channel = ADC_CHANNEL_11;  // pc1 left cur  ->  right
-  sConfig.Rank    = 1;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
   // sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
   sConfig.SamplingTime = ADC_SAMPLETIME_7CYCLES_5;
-  sConfig.Channel = ADC_CHANNEL_0;  // pa0 right a   ->  left
+  sConfig.Channel = ADC_CHANNEL_0;  // PA0 right a   ->  left
   sConfig.Rank    = 2;
   HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
-  sConfig.Channel = ADC_CHANNEL_14;  // pc4 left b   -> right
-  sConfig.Rank    = 3;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  sConfig.Channel = ADC_CHANNEL_1;   // PA1 vbat
 
-  #if BOARD_VARIANT == 0
-  sConfig.Channel = ADC_CHANNEL_12;  // pc2 vbat
-  #elif BOARD_VARIANT == 1
-  sConfig.Channel = ADC_CHANNEL_1;   // pa1 vbat
-  #endif
   sConfig.Rank    = 4;
   HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
@@ -562,55 +551,8 @@ void MX_ADC1_Init(void) {
   DMA1_Channel1->CPAR  = (uint32_t) & (ADC1->DR);
   DMA1_Channel1->CMAR  = (uint32_t)&adc_buffer;
   DMA1_Channel1->CCR   = DMA_CCR_MSIZE_1 | DMA_CCR_PSIZE_1 | DMA_CCR_MINC | DMA_CCR_CIRC | DMA_CCR_TCIE;
-  DMA1_Channel1->CCR |= DMA_CCR_EN;
+  DMA1_Channel1->CCR  |= DMA_CCR_EN;
 
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-}
-
-/* ADC2 init function */
-void MX_ADC2_Init(void) {
-  ADC_ChannelConfTypeDef sConfig;
-
-  __HAL_RCC_ADC2_CLK_ENABLE();
-
-  // HAL_ADC_DeInit(&hadc2);
-  // hadc2.Instance->CR2 = 0;
-  /**Common config
-    */
-  hadc2.Instance                   = ADC2;
-  hadc2.Init.ScanConvMode          = ADC_SCAN_ENABLE;
-  hadc2.Init.ContinuousConvMode    = DISABLE;
-  hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
-  hadc2.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
-  hadc2.Init.NbrOfConversion       = 5;
-  HAL_ADC_Init(&hadc2);
-
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  sConfig.Channel = ADC_CHANNEL_10;  // pc0 right cur   -> left
-  sConfig.Rank    = 1;
-  HAL_ADC_ConfigChannel(&hadc2, &sConfig);
-
-  // sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  sConfig.SamplingTime = ADC_SAMPLETIME_7CYCLES_5;
-  sConfig.Channel = ADC_CHANNEL_13;  // pc3 right b   -> left
-  sConfig.Rank    = 2;
-  HAL_ADC_ConfigChannel(&hadc2, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_15;  // pc5 left c   -> right
-  sConfig.Rank    = 3;
-  HAL_ADC_ConfigChannel(&hadc2, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_2;  // pa2 uart-l-tx
-  sConfig.Rank    = 4;
-  HAL_ADC_ConfigChannel(&hadc2, &sConfig);
-
-  // sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;   // Commented-out to make `uart-l-rx` ADC sample time the same as `uart-l-tx`
-  sConfig.Channel = ADC_CHANNEL_3;  // pa3 uart-l-rx
-  sConfig.Rank    = 5;
-  HAL_ADC_ConfigChannel(&hadc2, &sConfig);
-
-  hadc2.Instance->CR2 |= ADC_CR2_DMA;
-  __HAL_ADC_ENABLE(&hadc2);
 }

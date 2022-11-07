@@ -29,14 +29,21 @@
 #include "stm32f1xx_hal.h"
 #include "config.h"
 
+// Hall sensor inputs: Bluepill does not have PC10,PC11,PC12, use the following?
 #define RIGHT_HALL_U_PIN GPIO_PIN_10
-#define RIGHT_HALL_V_PIN GPIO_PIN_11
-#define RIGHT_HALL_W_PIN GPIO_PIN_12
-
 #define RIGHT_HALL_U_PORT GPIOC
+
+#define RIGHT_HALL_V_PIN GPIO_PIN_11
 #define RIGHT_HALL_V_PORT GPIOC
+
+#define RIGHT_HALL_W_PIN GPIO_PIN_12
 #define RIGHT_HALL_W_PORT GPIOC
 
+// From SimpleFOC examples for Bluepill:
+// BLDCDriver6PWM(IN1_H,  IN1_L, IN2_H,  IN2_L,  IN3_H, IN3_L, enable(optional))
+// BLDCDriver6PWM(phA_h,  phA_l, phB_h,  phB_l,  phC_h, phC_l, enable)
+// BLDCDriver6PWM(  PA8,  PB13,    PA9,   PB14,   PA10,  PB15, PB12);
+// U = A; V = B, W = C
 #define RIGHT_TIM TIM1
 #define RIGHT_TIM_U CCR1
 #define RIGHT_TIM_UH_PIN GPIO_PIN_8
@@ -59,11 +66,12 @@
 // #define RIGHT_V_CUR_ADC ADC2
 
 #define RIGHT_DC_CUR_PIN GPIO_PIN_1
-#define RIGHT_U_CUR_PIN GPIO_PIN_4
-#define RIGHT_V_CUR_PIN GPIO_PIN_5
-
 #define RIGHT_DC_CUR_PORT GPIOC
+
+#define RIGHT_U_CUR_PIN GPIO_PIN_4
 #define RIGHT_U_CUR_PORT GPIOC
+
+#define RIGHT_V_CUR_PIN GPIO_PIN_5
 #define RIGHT_V_CUR_PORT GPIOC
 
 // #define DCLINK_ADC ADC3
