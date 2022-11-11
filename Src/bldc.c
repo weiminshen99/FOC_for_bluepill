@@ -115,9 +115,9 @@ void DMA1_Channel1_IRQHandler(void) {
   // Disable PWM when current limit is reached (current chopping)
   // This is the Level 2 of current protection. The Level 1 should kick in first given by I_MOT_MAX
   if(ABS(curR_DC)  > curDC_max || enable == 0) {
-    RIGHT_TIM->BDTR &= ~TIM_BDTR_MOE;
+    MOTOR_TIM->BDTR &= ~TIM_BDTR_MOE;	// not generate PWM
   } else {
-    RIGHT_TIM->BDTR |= TIM_BDTR_MOE;
+    MOTOR_TIM->BDTR |= TIM_BDTR_MOE;	// auto generate PWM
   }
 
   // Create square wave for buzzer
@@ -161,9 +161,9 @@ void DMA1_Channel1_IRQHandler(void) {
 
   // ========================= RIGHT MOTOR ===========================
     // Get hall sensors values
-    uint8_t hall_ur = !(RIGHT_HALL_U_PORT->IDR & RIGHT_HALL_U_PIN);
-    uint8_t hall_vr = !(RIGHT_HALL_V_PORT->IDR & RIGHT_HALL_V_PIN);
-    uint8_t hall_wr = !(RIGHT_HALL_W_PORT->IDR & RIGHT_HALL_W_PIN);
+    uint8_t hall_ur = !(HALL_U_PORT->IDR & HALL_U_PIN);
+    uint8_t hall_vr = !(HALL_V_PORT->IDR & HALL_V_PIN);
+    uint8_t hall_wr = !(HALL_W_PORT->IDR & HALL_W_PIN);
 
     /* Set motor inputs here */
     rtU_Right.b_motEna      = enableFin;
@@ -191,9 +191,9 @@ void DMA1_Channel1_IRQHandler(void) {
  // motAngleRight = rtY_Right.a_elecAngle;
 
     /* Apply commands */
-    RIGHT_TIM->RIGHT_TIM_U  = (uint16_t)CLAMP(ur + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
-    RIGHT_TIM->RIGHT_TIM_V  = (uint16_t)CLAMP(vr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
-    RIGHT_TIM->RIGHT_TIM_W  = (uint16_t)CLAMP(wr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(ur + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+    MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(vr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+    MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(wr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
   // =================================================================
 
   /* Indicate task complete */

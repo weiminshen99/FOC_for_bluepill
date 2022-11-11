@@ -1,4 +1,7 @@
 /*
+*
+* Copyright (C) 2021-2022 AARICO, Wei-Min Shen, for Bluepill
+*
 * This file is part of the hoverboard-firmware-hack project.
 *
 * Copyright (C) 2017-2018 Rene Hopf <renehopf@mac.com>
@@ -20,11 +23,14 @@
 */
 
 /*
-tim1 master, enable -> trgo
-tim8, gated slave mode, trgo by tim1 trgo. overflow -> trgo
-adc1,adc2 triggered by tim8 trgo
-adc 1,2 dual mode
+// for Bluepill
+tim1 --> 3-phase pwm
 
+tim1 --> check hall inputs
+
+tim2 --> adc1
+
+// previously:
 ADC1             ADC2
 R_Blau PC4 CH14  R_Gelb PC5 CH15
 L_Grün PA0 CH01  L_Blau PC3 CH13
@@ -42,7 +48,6 @@ pb10 usart3 dma1 channel2/3
 TIM_HandleTypeDef htim_right;
 TIM_HandleTypeDef htim_left;
 ADC_HandleTypeDef hadc1;
-ADC_HandleTypeDef hadc2;
 I2C_HandleTypeDef hi2c2;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
@@ -94,7 +99,7 @@ void UART3_Init(void)
   /* DMA1_Channel3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
-  
+
   huart3.Instance = USART3;
   huart3.Init.BaudRate = USART3_BAUD;
   huart3.Init.WordLength = USART3_WORDLENGTH;
@@ -258,10 +263,10 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   /* USER CODE END USART3_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_USART3_CLK_DISABLE();
-  
-    /**USART3 GPIO Configuration    
+
+    /**USART3 GPIO Configuration
     PB10     ------> USART3_TX
-    PB11     ------> USART3_RX 
+    PB11     ------> USART3_RX
     */
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10|GPIO_PIN_11);
 
@@ -275,7 +280,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 
   /* USER CODE END USART3_MspDeInit 1 */
   }
-} 
+}
 #endif
 
 DMA_HandleTypeDef hdma_i2c2_rx;
@@ -313,7 +318,7 @@ void I2C_Init(void)
 
   /* Peripheral DMA init*/
 /*  __HAL_RCC_DMA1_CLK_ENABLE();
-*/  
+*/
   /* DMA1_Channel4_IRQn interrupt configuration */
 /*  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 1, 4);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
@@ -369,14 +374,14 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull  = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 
-  GPIO_InitStruct.Pin = RIGHT_HALL_U_PIN;
-  HAL_GPIO_Init(RIGHT_HALL_U_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = HALL_U_PIN;
+  HAL_GPIO_Init(HALL_U_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_HALL_V_PIN;
-  HAL_GPIO_Init(RIGHT_HALL_V_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = HALL_V_PIN;
+  HAL_GPIO_Init(HALL_V_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_HALL_W_PIN;
-  HAL_GPIO_Init(RIGHT_HALL_W_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = HALL_W_PIN;
+  HAL_GPIO_Init(HALL_W_PORT, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Pin = CHARGER_PIN;
@@ -394,7 +399,7 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = BUTTON_PIN;
   HAL_GPIO_Init(BUTTON_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // <== OUTPUT_PP below
 
   GPIO_InitStruct.Pin = LED_PIN;
   HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
@@ -406,67 +411,65 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(OFF_PORT, &GPIO_InitStruct);
 
   //Analog in
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Pin = GPIO_PIN_3;		// ??? Are these analog?
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Pin = GPIO_PIN_2;		// ??? Are these analog?
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG; // <== ANALOG pins below
 
-  GPIO_InitStruct.Pin = RIGHT_DC_CUR_PIN;
-  HAL_GPIO_Init(RIGHT_DC_CUR_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_DC_CUR_PIN;
+  HAL_GPIO_Init(MOTOR_DC_CUR_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_U_CUR_PIN;
-  HAL_GPIO_Init(RIGHT_U_CUR_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_U_CUR_PIN;
+  HAL_GPIO_Init(MOTOR_U_CUR_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_V_CUR_PIN;
-  HAL_GPIO_Init(RIGHT_V_CUR_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_V_CUR_PIN;
+  HAL_GPIO_Init(MOTOR_V_CUR_PORT, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = DCLINK_PIN;
   HAL_GPIO_Init(DCLINK_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP; // AF_PP pins below
 
-  GPIO_InitStruct.Pin = RIGHT_TIM_UH_PIN;
-  HAL_GPIO_Init(RIGHT_TIM_UH_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_TIM_UH_PIN;
+  HAL_GPIO_Init(MOTOR_TIM_UH_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_TIM_VH_PIN;
-  HAL_GPIO_Init(RIGHT_TIM_VH_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_TIM_VH_PIN;
+  HAL_GPIO_Init(MOTOR_TIM_VH_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_TIM_WH_PIN;
-  HAL_GPIO_Init(RIGHT_TIM_WH_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_TIM_WH_PIN;
+  HAL_GPIO_Init(MOTOR_TIM_WH_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_TIM_UL_PIN;
-  HAL_GPIO_Init(RIGHT_TIM_UL_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_TIM_UL_PIN;
+  HAL_GPIO_Init(MOTOR_TIM_UL_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_TIM_VL_PIN;
-  HAL_GPIO_Init(RIGHT_TIM_VL_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_TIM_VL_PIN;
+  HAL_GPIO_Init(MOTOR_TIM_VL_PORT, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = RIGHT_TIM_WL_PIN;
-  HAL_GPIO_Init(RIGHT_TIM_WL_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = MOTOR_TIM_WL_PIN;
+  HAL_GPIO_Init(MOTOR_TIM_WL_PORT, &GPIO_InitStruct);
 }
 
 void MX_TIM_Init(void)
 {
-  __HAL_RCC_TIM1_CLK_ENABLE();
-
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_OC_InitTypeDef sConfigOC;
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
-
-  htim_right.Instance               = RIGHT_TIM;
+  htim_right.Instance               = MOTOR_TIM;
+  htim_right.Init.Period            = 64000000 / 2 / PWM_FREQ;
   htim_right.Init.Prescaler         = 0;
   htim_right.Init.CounterMode       = TIM_COUNTERMODE_CENTERALIGNED1;
-  htim_right.Init.Period            = 64000000 / 2 / PWM_FREQ;
   htim_right.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
   htim_right.Init.RepetitionCounter = 0;
   htim_right.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  HAL_TIM_PWM_Init(&htim_right);
+  if (HAL_TIM_PWM_Init(&htim_right) == HAL_ERROR) printf("BBBBADD");
 
+/* // no need to trig anyone else
+  TIM_MasterConfigTypeDef sMasterConfig;
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_ENABLE;
   sMasterConfig.MasterSlaveMode     = TIM_MASTERSLAVEMODE_DISABLE;
   HAL_TIMEx_MasterConfigSynchronization(&htim_right, &sMasterConfig);
+*/
 
+  TIM_OC_InitTypeDef sConfigOC;
   sConfigOC.OCMode       = TIM_OCMODE_PWM1;
   sConfigOC.Pulse        = 0;
   sConfigOC.OCPolarity   = TIM_OCPOLARITY_HIGH;
@@ -478,31 +481,31 @@ void MX_TIM_Init(void)
   HAL_TIM_PWM_ConfigChannel(&htim_right, &sConfigOC, TIM_CHANNEL_2);
   HAL_TIM_PWM_ConfigChannel(&htim_right, &sConfigOC, TIM_CHANNEL_3);
 
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
   sBreakDeadTimeConfig.OffStateRunMode  = TIM_OSSR_ENABLE;
   sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;
   sBreakDeadTimeConfig.LockLevel        = TIM_LOCKLEVEL_OFF;
   sBreakDeadTimeConfig.DeadTime         = DEAD_TIME;
   sBreakDeadTimeConfig.BreakState       = TIM_BREAK_DISABLE;
   sBreakDeadTimeConfig.BreakPolarity    = TIM_BREAKPOLARITY_LOW;
-  sBreakDeadTimeConfig.AutomaticOutput  = TIM_AUTOMATICOUTPUT_DISABLE;
+  sBreakDeadTimeConfig.AutomaticOutput  = TIM_AUTOMATICOUTPUT_ENABLE;
   HAL_TIMEx_ConfigBreakDeadTime(&htim_right, &sBreakDeadTimeConfig);
 
-  RIGHT_TIM->BDTR &= ~TIM_BDTR_MOE;
+  __HAL_RCC_TIM1_CLK_ENABLE();	// start TIM1's clock
 
+  // Enable all three channels for PWM output
   HAL_TIM_PWM_Start(&htim_right, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim_right, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim_right, TIM_CHANNEL_3);
+  // Enable all three complemenary channels for PWM output
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_1);
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_2);
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_3);
 
-  // Enable TIMER_INT_UP interrupt and set priority
-  //nvic_irq_enable(TIMER0_BRK_UP_TRG_COM_IRQn, 0, 0); // GD32 example
-  //timer_interrupt_enable(TIMER_BLDC, TIMER_INT_UP);  // GD32 example
-  HAL_NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn, 0, 0); // right?
-  HAL_NVIC_EnableIRQ(&htim_right, TIM1_INT_IRQn); // right?
-
-  __HAL_TIM_ENABLE(&htim_right);
+  // setup TIM1's interrupts, if needed.
+  HAL_NVIC_SetPriority(TIM1_UP_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM1_UP_IRQn);
+  HAL_TIM_Base_Start_IT(&htim_right);  // start TIM1 and its interrupts
 }
 
 void MX_ADC1_Init(void)
@@ -517,8 +520,8 @@ void MX_ADC1_Init(void)
   hadc1.Init.ContinuousConvMode    = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
 // hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T8_TRGO; // original one
-// hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;  // <=== CORRECT?
-  hadc2.Init.ExternalTrigConv      = ADC_SOFTWARE_START; // should be externl_triggered?
+  hadc1.Init.ExternalTrigConv      = ADC_SOFTWARE_START; // <== Correct?
+//  hadc1.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;  // <=== CORRECT?
   hadc1.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion       = 5;
   HAL_ADC_Init(&hadc1);
@@ -550,15 +553,29 @@ void MX_ADC1_Init(void)
 
   __HAL_ADC_ENABLE(&hadc1);
 
+  // For STM32F103 (Fig 50), ADC1 uses DMA1_Channel1 for DMA operations
+  // So we set up DMA1_Channel1 here
   __HAL_RCC_DMA1_CLK_ENABLE();
-
   DMA1_Channel1->CCR   = 0;
   DMA1_Channel1->CNDTR = 5;
   DMA1_Channel1->CPAR  = (uint32_t) & (ADC1->DR);
   DMA1_Channel1->CMAR  = (uint32_t)&adc_buffer;
   DMA1_Channel1->CCR   = DMA_CCR_MSIZE_1 | DMA_CCR_PSIZE_1 | DMA_CCR_MINC | DMA_CCR_CIRC | DMA_CCR_TCIE;
   DMA1_Channel1->CCR  |= DMA_CCR_EN;
-
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 }
+
+
+// Interrupt Handlers
+
+void TIM1_UP_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim_right);
+  // begin user code
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); // toggle PC13/LED
+  //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, RESET); // turn ON PC13/LED
+  // end user code
+  __HAL_TIM_CLEAR_IT(&htim_right, TIM_IT_UPDATE);
+}
+

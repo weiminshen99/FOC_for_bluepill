@@ -29,50 +29,46 @@
 #include "stm32f1xx_hal.h"
 #include "config.h"
 
-// Hall sensor inputs: Bluepill does not have PC10,PC11,PC12, use the following?
-#define RIGHT_HALL_U_PIN GPIO_PIN_10
-#define RIGHT_HALL_U_PORT GPIOC
-
-#define RIGHT_HALL_V_PIN GPIO_PIN_11
-#define RIGHT_HALL_V_PORT GPIOC
-
-#define RIGHT_HALL_W_PIN GPIO_PIN_12
-#define RIGHT_HALL_W_PORT GPIOC
+// Hall sensor inputs on PB5, PB6, PB7
+#define HALL_U_PORT GPIOB
+#define HALL_U_PIN GPIO_PIN_5
+#define HALL_V_PORT GPIOB
+#define HALL_V_PIN GPIO_PIN_6
+#define HALL_W_PORT GPIOB
+#define HALL_W_PIN GPIO_PIN_7
 
 // From SimpleFOC examples for Bluepill:
 // BLDCDriver6PWM(IN1_H,  IN1_L, IN2_H,  IN2_L,  IN3_H, IN3_L, enable(optional))
 // BLDCDriver6PWM(phA_h,  phA_l, phB_h,  phB_l,  phC_h, phC_l, enable)
 // BLDCDriver6PWM(  PA8,  PB13,    PA9,   PB14,   PA10,  PB15, PB12);
 // U = A; V = B, W = C
-#define RIGHT_TIM TIM1
-#define RIGHT_TIM_U CCR1
-#define RIGHT_TIM_UH_PIN GPIO_PIN_8
-#define RIGHT_TIM_UH_PORT GPIOA
-#define RIGHT_TIM_UL_PIN GPIO_PIN_13
-#define RIGHT_TIM_UL_PORT GPIOB
-#define RIGHT_TIM_V CCR2
-#define RIGHT_TIM_VH_PIN GPIO_PIN_9
-#define RIGHT_TIM_VH_PORT GPIOA
-#define RIGHT_TIM_VL_PIN GPIO_PIN_14
-#define RIGHT_TIM_VL_PORT GPIOB
-#define RIGHT_TIM_W CCR3
-#define RIGHT_TIM_WH_PIN GPIO_PIN_10
-#define RIGHT_TIM_WH_PORT GPIOA
-#define RIGHT_TIM_WL_PIN GPIO_PIN_15
-#define RIGHT_TIM_WL_PORT GPIOB
+#define MOTOR_TIM TIM1
+#define MOTOR_TIM_U CCR1
+#define MOTOR_TIM_UH_PIN GPIO_PIN_8
+#define MOTOR_TIM_UH_PORT GPIOA
+#define MOTOR_TIM_UL_PIN GPIO_PIN_13
+#define MOTOR_TIM_UL_PORT GPIOB
+#define MOTOR_TIM_V CCR2
+#define MOTOR_TIM_VH_PIN GPIO_PIN_9
+#define MOTOR_TIM_VH_PORT GPIOA
+#define MOTOR_TIM_VL_PIN GPIO_PIN_14
+#define MOTOR_TIM_VL_PORT GPIOB
+#define MOTOR_TIM_W CCR3
+#define MOTOR_TIM_WH_PIN GPIO_PIN_10
+#define MOTOR_TIM_WH_PORT GPIOA
+#define MOTOR_TIM_WL_PIN GPIO_PIN_15
+#define MOTOR_TIM_WL_PORT GPIOB
 
-// #define RIGHT_DC_CUR_ADC ADC2
-// #define RIGHT_U_CUR_ADC ADC2
-// #define RIGHT_V_CUR_ADC ADC2
-
-#define RIGHT_DC_CUR_PIN GPIO_PIN_1
-#define RIGHT_DC_CUR_PORT GPIOC
-
-#define RIGHT_U_CUR_PIN GPIO_PIN_4
-#define RIGHT_U_CUR_PORT GPIOC
-
-#define RIGHT_V_CUR_PIN GPIO_PIN_5
-#define RIGHT_V_CUR_PORT GPIOC
+// PINS for ADC1
+// #define MOTOR_DC_CUR_ADC ADC1
+#define MOTOR_DC_CUR_PORT GPIOC
+#define MOTOR_DC_CUR_PIN GPIO_PIN_0
+// #define MOTOR_U_CUR_ADC ADC1
+#define MOTOR_U_CUR_PORT GPIOA
+#define MOTOR_U_CUR_PIN GPIO_PIN_0
+// #define MOTOR_V_CUR_ADC ADC1
+#define MOTOR_V_CUR_PORT GPIOC
+#define MOTOR_V_CUR_PIN GPIO_PIN_3
 
 // #define DCLINK_ADC ADC3
 // #define DCLINK_CHANNEL
@@ -204,12 +200,12 @@ typedef enum {
 
 // Define I2C, Nunchuk, PPM, PWM functions
 void I2C_Init(void);
-nunchuk_state Nunchuk_Read(void);
 void PPM_Init(void);
 void PPM_ISR_Callback(void);
 void PWM_Init(void);
 void PWM_ISR_CH1_Callback(void);
 void PWM_ISR_CH2_Callback(void);
+nunchuk_state Nunchuk_Read(void);
 
 // Sideboard definitions
 #define LED1_SET            (0x01)

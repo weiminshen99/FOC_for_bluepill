@@ -162,9 +162,9 @@ int main(void) // MAIN LOOP
 //===================================================
 {
   HAL_Init();
+
   __HAL_RCC_AFIO_CLK_ENABLE();
-  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-  /* System interrupt init*/
+
   /* MemoryManagement_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(MemoryManagement_IRQn, 0, 0);
   /* BusFault_IRQn interrupt configuration */
@@ -177,22 +177,20 @@ int main(void) // MAIN LOOP
   HAL_NVIC_SetPriority(DebugMonitor_IRQn, 0, 0);
   /* PendSV_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(PendSV_IRQn, 0, 0);
-  /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 
   SystemClock_Config();
 
-  __HAL_RCC_DMA1_CLK_DISABLE();
+
 
   MX_GPIO_Init();
   MX_TIM_Init();
+
+/*
   MX_ADC1_Init();
   BLDC_Init();
 
-  HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, GPIO_PIN_SET);   // Activate Latch
-
-//  Input_Lim_Init();   // Input Limitations Init
-//  Input_Init();       // Input Init
+  Input_Lim_Init();   // Input Limitations Init
+  Input_Init();       // Input Init
 
   HAL_ADC_Start(&hadc1);
 
@@ -221,25 +219,19 @@ int main(void) // MAIN LOOP
     }
     printf("Drive mode %i selected: max_speed:%i acc_rate:%i \r\n", drive_mode, max_speed, rate);
   #endif
+*/
 
-  poweronMelody();
 
   while(1) { // THE MAIN LOOP
 
+
 //  if (buzzerTimer - buzzerTimer_prev > 16*DELAY_IN_MAIN_LOOP) {   // 1 ms = 16 ticks buzzerTimer
+
+/*	calcAvgSpeed();		// Calculate average measured speed: speedAvg,speedAvgAbs
 
 	readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
 	input1[inIdx].cmd = 49;
 	input2[inIdx].cmd = 49;
-
-	calcAvgSpeed();                       // Calculate average measured speed: speedAvg, speedAvgAbs
-
-	hall_tmp = !(RIGHT_HALL_U_PORT->IDR & RIGHT_HALL_U_PIN);
-    	hall_tmp = !(RIGHT_HALL_V_PORT->IDR & RIGHT_HALL_V_PIN);
-    	hall_tmp = !(RIGHT_HALL_W_PORT->IDR & RIGHT_HALL_W_PIN);
-
-	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
-	// gdb check: rtY_Right.z_errCode = 0;
 
     	// ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
       	if (enable == 0 && !rtY_Right.z_errCode && ABS(input1[inIdx].cmd) < 50 && ABS(input2[inIdx].cmd) < 50) {
@@ -253,14 +245,26 @@ int main(void) // MAIN LOOP
         	printf("-- Motors enabled --\r\n");
         	#endif
       	}
+*/
 
-	//HAL_GPIO_WritePin(LED_PORT, LED_PIN, 1);
-	HAL_Delay(100);
+	MOTOR_TIM->BDTR |= TIM_BDTR_MOE;	// enable to output PWM
+
+    	// Apply outputs to the motor
+	MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(100 + 2000/2, 110, 2000-110);
+    	MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(-100 + 2000/2, 110, 2000-110);
+    	MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(0 + 2000/2, 110, 2000-110);
+
+	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+	// gdb watch:
+	// 	rtY_Right.z_errCode == ?;
+	//	enable == ?
 
     	// Update states
-    	inIdx_prev = inIdx;
-    	buzzerTimer_prev = buzzerTimer;
+    	//inIdx_prev = inIdx;
+    	//buzzerTimer_prev = buzzerTimer;
     	main_loop_counter++;
+	// main loop delay
+	HAL_Delay(100);
   }
 }
 
