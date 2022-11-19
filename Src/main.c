@@ -180,7 +180,9 @@ int main(void) // MAIN LOOP
 
   SystemClock_Config();
 
-
+  __HAL_RCC_AFIO_CLK_ENABLE();
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_TIM1_CLK_ENABLE(); // this must be in the main(). Why?
 
   MX_GPIO_Init();
   MX_TIM_Init();
@@ -245,7 +247,6 @@ int main(void) // MAIN LOOP
         	printf("-- Motors enabled --\r\n");
         	#endif
       	}
-*/
 
 	MOTOR_TIM->BDTR |= TIM_BDTR_MOE;	// enable to output PWM
 
@@ -253,8 +254,8 @@ int main(void) // MAIN LOOP
 	MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(100 + 2000/2, 110, 2000-110);
     	MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(-100 + 2000/2, 110, 2000-110);
     	MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(0 + 2000/2, 110, 2000-110);
+*/
 
-	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
 	// gdb watch:
 	// 	rtY_Right.z_errCode == ?;
 	//	enable == ?
@@ -262,9 +263,26 @@ int main(void) // MAIN LOOP
     	// Update states
     	//inIdx_prev = inIdx;
     	//buzzerTimer_prev = buzzerTimer;
-    	main_loop_counter++;
+    	//main_loop_counter++;
 	// main loop delay
-	HAL_Delay(100);
+	//HAL_Delay(100);
+
+	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+
+	int32_t CH1_DC = 0;
+        while(CH1_DC < 2000)
+        {
+                TIM1->CCR1 = CH1_DC;
+                CH1_DC += 70;
+                HAL_Delay(1);
+        }
+        while(CH1_DC > 0)
+        {
+                TIM1->CCR1 = CH1_DC;
+                CH1_DC -= 70;
+                HAL_Delay(1);
+        }
+
   }
 }
 

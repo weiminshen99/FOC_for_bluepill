@@ -462,14 +462,17 @@ void MX_TIM_Init(void)
   htim_right.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim_right) == HAL_ERROR) printf("BBBBADD");
 
-/* // no need to trig anyone else
-  TIM_MasterConfigTypeDef sMasterConfig;
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_ENABLE;
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  HAL_TIM_ConfigClockSource(&htim_right, &sClockSourceConfig);
+  HAL_TIM_PWM_Init(&htim_right);
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_ENABLE; // TIM_TRGO_DISABLE
   sMasterConfig.MasterSlaveMode     = TIM_MASTERSLAVEMODE_DISABLE;
   HAL_TIMEx_MasterConfigSynchronization(&htim_right, &sMasterConfig);
-*/
 
-  TIM_OC_InitTypeDef sConfigOC;
+  TIM_OC_InitTypeDef sConfigOC = {0};
   sConfigOC.OCMode       = TIM_OCMODE_PWM1;
   sConfigOC.Pulse        = 0;
   sConfigOC.OCPolarity   = TIM_OCPOLARITY_HIGH;
@@ -481,7 +484,7 @@ void MX_TIM_Init(void)
   HAL_TIM_PWM_ConfigChannel(&htim_right, &sConfigOC, TIM_CHANNEL_2);
   HAL_TIM_PWM_ConfigChannel(&htim_right, &sConfigOC, TIM_CHANNEL_3);
 
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
   sBreakDeadTimeConfig.OffStateRunMode  = TIM_OSSR_ENABLE;
   sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;
   sBreakDeadTimeConfig.LockLevel        = TIM_LOCKLEVEL_OFF;
@@ -491,8 +494,6 @@ void MX_TIM_Init(void)
   sBreakDeadTimeConfig.AutomaticOutput  = TIM_AUTOMATICOUTPUT_ENABLE;
   HAL_TIMEx_ConfigBreakDeadTime(&htim_right, &sBreakDeadTimeConfig);
 
-  __HAL_RCC_TIM1_CLK_ENABLE();	// start TIM1's clock
-
   // Enable all three channels for PWM output
   HAL_TIM_PWM_Start(&htim_right, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim_right, TIM_CHANNEL_2);
@@ -501,6 +502,9 @@ void MX_TIM_Init(void)
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_1);
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_2);
   HAL_TIMEx_PWMN_Start(&htim_right, TIM_CHANNEL_3);
+
+  __HAL_TIM_ENABLE(&htim_right);
+  __HAL_RCC_TIM1_CLK_ENABLE();	// start TIM1's clock
 
   // setup TIM1's interrupts, if needed.
   HAL_NVIC_SetPriority(TIM1_UP_IRQn, 0, 0);
