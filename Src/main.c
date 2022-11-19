@@ -115,7 +115,6 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
   static uint16_t max_speed;
 #endif
 
-
 // ===========================================================
 // System Clock Configuration
 // ===========================================================
@@ -221,7 +220,6 @@ int main(void) // MAIN LOOP
   #endif
 */
 
-
   while(1) { // THE MAIN LOOP
 
 
@@ -258,10 +256,12 @@ int main(void) // MAIN LOOP
 	//HAL_Delay(100);
 
     // =============== MOOTOR CONTROL ===========================
+
     // Get hall sensors values
-    uint8_t hall_ur = !(HALL_U_PORT->IDR & HALL_U_PIN);
-    uint8_t hall_vr = !(HALL_V_PORT->IDR & HALL_V_PIN);
-    uint8_t hall_wr = !(HALL_W_PORT->IDR & HALL_W_PIN);
+    hall_tmp = !(HALL_U_PORT->IDR & HALL_U_PIN);
+    //hall_ur = !(HALL_U_PORT->IDR & HALL_U_PIN);
+    //hall_vr = !(HALL_V_PORT->IDR & HALL_V_PIN);
+    //hall_wr = !(HALL_W_PORT->IDR & HALL_W_PIN);
 /*
     // Set motor inputs here
     rtU_Right.b_motEna      = enableFin;
@@ -296,6 +296,8 @@ int main(void) // MAIN LOOP
 
 
     // ==========END MOOTOR CONTROL ===========================
+
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
         /*
 	int32_t CH1_DC = 0;

@@ -506,10 +506,12 @@ void MX_TIM_Init(void)
   __HAL_TIM_ENABLE(&htim_right);
   __HAL_RCC_TIM1_CLK_ENABLE();	// start TIM1's clock
 
+  /*
   // setup TIM1's interrupts, if needed.
   HAL_NVIC_SetPriority(TIM1_UP_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(TIM1_UP_IRQn);
   HAL_TIM_Base_Start_IT(&htim_right);  // start TIM1 and its interrupts
+  */
 }
 
 void MX_ADC1_Init(void)
