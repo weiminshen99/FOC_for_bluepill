@@ -164,6 +164,8 @@ int main(void) // MAIN LOOP
   HAL_Init();
 
   __HAL_RCC_AFIO_CLK_ENABLE();
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_TIM1_CLK_ENABLE(); // this must be in the main(). Why?
 
   /* MemoryManagement_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(MemoryManagement_IRQn, 0, 0);
@@ -179,10 +181,6 @@ int main(void) // MAIN LOOP
   HAL_NVIC_SetPriority(PendSV_IRQn, 0, 0);
 
   SystemClock_Config();
-
-  __HAL_RCC_AFIO_CLK_ENABLE();
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_RCC_TIM1_CLK_ENABLE(); // this must be in the main(). Why?
 
   MX_GPIO_Init();
   MX_TIM_Init();
@@ -247,15 +245,7 @@ int main(void) // MAIN LOOP
         	printf("-- Motors enabled --\r\n");
         	#endif
       	}
-
-	MOTOR_TIM->BDTR |= TIM_BDTR_MOE;	// enable to output PWM
-
-    	// Apply outputs to the motor
-	MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(100 + 2000/2, 110, 2000-110);
-    	MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(-100 + 2000/2, 110, 2000-110);
-    	MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(0 + 2000/2, 110, 2000-110);
 */
-
 	// gdb watch:
 	// 	rtY_Right.z_errCode == ?;
 	//	enable == ?
@@ -267,25 +257,65 @@ int main(void) // MAIN LOOP
 	// main loop delay
 	//HAL_Delay(100);
 
-	HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+    // =============== MOOTOR CONTROL ===========================
+    // Get hall sensors values
+    uint8_t hall_ur = !(HALL_U_PORT->IDR & HALL_U_PIN);
+    uint8_t hall_vr = !(HALL_V_PORT->IDR & HALL_V_PIN);
+    uint8_t hall_wr = !(HALL_W_PORT->IDR & HALL_W_PIN);
+/*
+    // Set motor inputs here
+    rtU_Right.b_motEna      = enableFin;
+    rtU_Right.z_ctrlModReq  = ctrlModReq;
+    rtU_Right.r_inpTgt      = pwmr;
+    rtU_Right.b_hallA       = hall_ur;
+    rtU_Right.b_hallB       = hall_vr;
+    rtU_Right.b_hallC       = hall_wr;
+    rtU_Right.i_phaAB       = curR_phaB;
+    rtU_Right.i_phaBC       = curR_phaC;
+    rtU_Right.i_DCLink      = curR_DC;
+    // rtU_Right.a_mechAngle   = ...; // Angle input in DEGREES [0,360] in fixdt(1,16,4) data type. If `angle` is float use `= (int16_t)floor(angle * 16.0F)` If `angl>
 
+    // Step the controller
+    BLDC_controller_step(rtM_Right);
+
+    // Get motor outputs here
+    ur            = rtY_Right.DC_phaA;
+    vr            = rtY_Right.DC_phaB;
+    wr            = rtY_Right.DC_phaC;
+
+    //MOTOR_TIM->BDTR |= TIM_BDTR_MOE;	// enable to output PWM
+
+    // Apply commands
+    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(ur + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+    MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(vr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+    MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(wr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+*/
+    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(200, 	110, 2000-110);
+    MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(1300, 	110, 2000-110);
+    MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(1500, 	110, 2000-110);
+
+
+    // ==========END MOOTOR CONTROL ===========================
+
+        /*
 	int32_t CH1_DC = 0;
         while(CH1_DC < 2000)
         {
-                TIM1->CCR1 = CH1_DC;
+                //TIM1->CCR1 = CH1_DC;
+		MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
                 CH1_DC += 70;
                 HAL_Delay(1);
         }
         while(CH1_DC > 0)
         {
-                TIM1->CCR1 = CH1_DC;
+                //TIM1->CCR1 = CH1_DC;
+		MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
                 CH1_DC -= 70;
                 HAL_Delay(1);
         }
-
+       */
   }
 }
-
 
 
 /*
