@@ -62,6 +62,19 @@
 #define LED_PIN GPIO_PIN_13
 #define LED_PORT GPIOC
 
+#define BUZZER_PIN GPIO_PIN_13
+#define BUZZER_PORT GPIOC
+
+#define OFF_PIN GPIO_PIN_15
+#define OFF_PORT GPIOC
+
+#define BUTTON_PIN GPIO_PIN_9
+#define BUTTON_PORT GPIOB
+
+#define CHARGER_PIN GPIO_PIN_11
+#define CHARGER_PORT GPIOA
+
+
 /*
 // PINS for ADC1
 // ==> On Bluepill, ADC ports are PA0-7, PB0-1, so we need remap these
@@ -84,21 +97,9 @@
 // #define DCLINK_PULLUP 30000
 // #define DCLINK_PULLDOWN 1000
 
-#define BUZZER_PIN GPIO_PIN_13
-#define BUZZER_PORT GPIOC
-
 // UNUSED/REDUNDANT
 //#define SWITCH_PIN GPIO_PIN_1
 //#define SWITCH_PORT GPIOA
-
-#define OFF_PIN GPIO_PIN_15
-#define OFF_PORT GPIOC
-
-#define BUTTON_PIN GPIO_PIN_9
-#define BUTTON_PORT GPIOB
-
-#define CHARGER_PIN GPIO_PIN_11
-#define CHARGER_PORT GPIOA
 
 #if defined(CONTROL_PPM_RIGHT)
 #define PPM_PIN             GPIO_PIN_11
@@ -118,6 +119,7 @@
 #define BUTTON2_PIN         GPIO_PIN_11
 #define BUTTON2_PORT        GPIOB
 #endif
+*/
 
 #define DELAY_TIM_FREQUENCY_US 1000000
 
@@ -148,7 +150,6 @@
 #if defined(PRINTF_FLOAT_SUPPORT) && (defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)) && defined(__GNUC__)
     asm(".global _printf_float");     // this is the magic trick for printf to support float. Warning: It will increase code considerably! Better to avoid!
 #endif
-*/
 
 typedef struct {
   uint16_t dcr;
