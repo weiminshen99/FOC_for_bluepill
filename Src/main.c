@@ -184,6 +184,8 @@ int main(void) // MAIN LOOP
   MX_GPIO_Init();
   MX_TIM_Init();
 
+  int32_t CH1_DC = 0;  // for testing purpose
+
 /*
   MX_ADC1_Init();
   BLDC_Init();
@@ -299,9 +301,8 @@ int main(void) // MAIN LOOP
 
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-        /*
-	int32_t CH1_DC = 0;
-        while(CH1_DC < 2000)
+
+        while(CH1_DC < 65535)
         {
                 //TIM1->CCR1 = CH1_DC;
 		MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
@@ -315,7 +316,7 @@ int main(void) // MAIN LOOP
                 CH1_DC -= 70;
                 HAL_Delay(1);
         }
-       */
+
   }
 }
 

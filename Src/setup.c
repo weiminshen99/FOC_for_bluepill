@@ -370,9 +370,11 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
-  GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull  = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+  GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;	// INPUT pins
+
+  GPIO_InitStruct.Pull  = GPIO_NOPULL;		// input nopull pins
 
   GPIO_InitStruct.Pin = HALL_U_PIN;
   HAL_GPIO_Init(HALL_U_PORT, &GPIO_InitStruct);
@@ -382,42 +384,31 @@ void MX_GPIO_Init(void)
 
   GPIO_InitStruct.Pin = HALL_W_PIN;
   HAL_GPIO_Init(HALL_W_PORT, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Pin = CHARGER_PIN;
-  HAL_GPIO_Init(CHARGER_PORT, &GPIO_InitStruct);
-
-  #if defined(SUPPORT_BUTTONS_RIGHT)
-  GPIO_InitStruct.Pin = BUTTON1_PIN;
-  HAL_GPIO_Init(BUTTON1_PORT, &GPIO_InitStruct);
-  GPIO_InitStruct.Pin = BUTTON2_PIN;
-  HAL_GPIO_Init(BUTTON2_PORT, &GPIO_InitStruct);
-  #endif
-
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-
+/*
   GPIO_InitStruct.Pin = BUTTON_PIN;
   HAL_GPIO_Init(BUTTON_PORT, &GPIO_InitStruct);
+*/
 
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // <== OUTPUT_PP below
+  GPIO_InitStruct.Pull = GPIO_PULLUP;		// input pullup pins
+/*
+  GPIO_InitStruct.Pin = CHARGER_PIN;
+  HAL_GPIO_Init(CHARGER_PORT, &GPIO_InitStruct);
+*/
+
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; 	// OUTPUT_PP pins
 
   GPIO_InitStruct.Pin = LED_PIN;
   HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
-
+/*
   GPIO_InitStruct.Pin = BUZZER_PIN;
   HAL_GPIO_Init(BUZZER_PORT, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = OFF_PIN;
   HAL_GPIO_Init(OFF_PORT, &GPIO_InitStruct);
+*/
 
-  //Analog in
-  GPIO_InitStruct.Pin = GPIO_PIN_3;		// ??? Are these analog?
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  GPIO_InitStruct.Pin = GPIO_PIN_2;		// ??? Are these analog?
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG; // <== ANALOG pins below
-
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG; 	// ANALOG pins
+/*
   GPIO_InitStruct.Pin = MOTOR_DC_CUR_PIN;
   HAL_GPIO_Init(MOTOR_DC_CUR_PORT, &GPIO_InitStruct);
 
@@ -429,24 +420,20 @@ void MX_GPIO_Init(void)
 
   GPIO_InitStruct.Pin = DCLINK_PIN;
   HAL_GPIO_Init(DCLINK_PORT, &GPIO_InitStruct);
+*/
 
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP; // AF_PP pins below
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP; 	// AF_PP pins
 
   GPIO_InitStruct.Pin = MOTOR_TIM_UH_PIN;
   HAL_GPIO_Init(MOTOR_TIM_UH_PORT, &GPIO_InitStruct);
-
   GPIO_InitStruct.Pin = MOTOR_TIM_VH_PIN;
   HAL_GPIO_Init(MOTOR_TIM_VH_PORT, &GPIO_InitStruct);
-
   GPIO_InitStruct.Pin = MOTOR_TIM_WH_PIN;
   HAL_GPIO_Init(MOTOR_TIM_WH_PORT, &GPIO_InitStruct);
-
   GPIO_InitStruct.Pin = MOTOR_TIM_UL_PIN;
   HAL_GPIO_Init(MOTOR_TIM_UL_PORT, &GPIO_InitStruct);
-
   GPIO_InitStruct.Pin = MOTOR_TIM_VL_PIN;
   HAL_GPIO_Init(MOTOR_TIM_VL_PORT, &GPIO_InitStruct);
-
   GPIO_InitStruct.Pin = MOTOR_TIM_WL_PIN;
   HAL_GPIO_Init(MOTOR_TIM_WL_PORT, &GPIO_InitStruct);
 }
@@ -460,7 +447,8 @@ void MX_TIM_Init(void)
   htim_right.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
   htim_right.Init.RepetitionCounter = 0;
   htim_right.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_PWM_Init(&htim_right) == HAL_ERROR) printf("BBBBADD");
+  if (HAL_TIM_Base_Init(&htim_right) == HAL_ERROR) printf("BBBBADD");
+//  if (HAL_TIM_PWM_Init(&htim_right) == HAL_ERROR) printf("BBBBADD");
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;

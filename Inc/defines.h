@@ -29,7 +29,7 @@
 #include "stm32f1xx_hal.h"
 #include "config.h"
 
-// Hall sensor inputs on PB5, PB6, PB7
+// Hall sensor inputs on PB5, PB6, PB7 (seems OK)
 #define HALL_U_PORT GPIOB
 #define HALL_U_PIN GPIO_PIN_5
 #define HALL_V_PORT GPIOB
@@ -59,7 +59,12 @@
 #define MOTOR_TIM_WL_PIN GPIO_PIN_15
 #define MOTOR_TIM_WL_PORT GPIOB
 
+#define LED_PIN GPIO_PIN_13
+#define LED_PORT GPIOC
+
+/*
 // PINS for ADC1
+// ==> On Bluepill, ADC ports are PA0-7, PB0-1, so we need remap these
 // #define MOTOR_DC_CUR_ADC ADC1
 #define MOTOR_DC_CUR_PORT GPIOC
 #define MOTOR_DC_CUR_PIN GPIO_PIN_0
@@ -73,60 +78,27 @@
 // #define DCLINK_ADC ADC3
 // #define DCLINK_CHANNEL
 
-#if BOARD_VARIANT == 0
-#define DCLINK_PIN GPIO_PIN_2
-#define DCLINK_PORT GPIOC
-#elif BOARD_VARIANT == 1
 #define DCLINK_PIN GPIO_PIN_1
 #define DCLINK_PORT GPIOA
-#endif
 
 // #define DCLINK_PULLUP 30000
 // #define DCLINK_PULLDOWN 1000
 
-#if BOARD_VARIANT == 0
-#define LED_PIN GPIO_PIN_2
-#define LED_PORT GPIOB
-#elif BOARD_VARIANT == 1	// For Bluepill, STMF103C8
-#define LED_PIN GPIO_PIN_13
-#define LED_PORT GPIOC
-#endif
-
-#if BOARD_VARIANT == 0
-#define BUZZER_PIN GPIO_PIN_4
-#define BUZZER_PORT GPIOA
-#elif BOARD_VARIANT == 1
 #define BUZZER_PIN GPIO_PIN_13
 #define BUZZER_PORT GPIOC
-#endif
 
 // UNUSED/REDUNDANT
 //#define SWITCH_PIN GPIO_PIN_1
 //#define SWITCH_PORT GPIOA
 
-#if BOARD_VARIANT == 0
-#define OFF_PIN GPIO_PIN_5
-#define OFF_PORT GPIOA
-#elif BOARD_VARIANT == 1
 #define OFF_PIN GPIO_PIN_15
 #define OFF_PORT GPIOC
-#endif
 
-#if BOARD_VARIANT == 0
-#define BUTTON_PIN GPIO_PIN_1
-#define BUTTON_PORT GPIOA
-#elif BOARD_VARIANT == 1
 #define BUTTON_PIN GPIO_PIN_9
 #define BUTTON_PORT GPIOB
-#endif
 
-#if BOARD_VARIANT == 0
-#define CHARGER_PIN GPIO_PIN_12
-#define CHARGER_PORT GPIOA
-#elif BOARD_VARIANT == 1
 #define CHARGER_PIN GPIO_PIN_11
 #define CHARGER_PORT GPIOA
-#endif
 
 #if defined(CONTROL_PPM_RIGHT)
 #define PPM_PIN             GPIO_PIN_11
@@ -176,7 +148,7 @@
 #if defined(PRINTF_FLOAT_SUPPORT) && (defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)) && defined(__GNUC__)
     asm(".global _printf_float");     // this is the magic trick for printf to support float. Warning: It will increase code considerably! Better to avoid!
 #endif
-
+*/
 
 typedef struct {
   uint16_t dcr;
