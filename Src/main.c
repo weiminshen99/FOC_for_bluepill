@@ -50,12 +50,15 @@ volatile uint8_t uart_buf[200];
 
 //----------------------------------------------------------
 // Matlab defines - from auto-code generation
+//  	inputs-->U-->M-->Y-->outputs
 extern P    rtP_Left;                   /* Block parameters (auto storage) */
 extern P    rtP_Right;                  /* Block parameters (auto storage) */
 extern ExtY rtY_Left;                   /* External outputs */
 extern ExtY rtY_Right;                  /* External outputs */
 extern ExtU rtU_Left;                   /* External inputs */
 extern ExtU rtU_Right;                  /* External inputs */
+
+extern RT_MODEL *const rtM_Right;	// WMS added here
 //----------------------------------------------------------
 
 extern uint8_t     inIdx;               // input index used for dual-inputs
@@ -73,11 +76,9 @@ extern uint8_t timeoutFlgSerial;        // Timeout Flag for Rx Serial command: 0
 extern volatile int pwml;               // global variable for pwm left. -1000 to 1000
 extern volatile int pwmr;               // global variable for pwm right. -1000 to 1000
 
-extern uint8_t enable;                  // global variable for motor enable
+uint8_t enable = 0;   // this global variable for motor enable is copied from bldc.c
 
 extern int16_t batVoltage;              // global variable for battery voltage
-
-uint8_t hall_tmp;
 
 
 //------------------------------------------------------------------------
@@ -92,6 +93,8 @@ int16_t right_dc_curr;           // global variable for Right DC Link current
 int16_t dc_curr;                 // global variable for Total DC Link current
 int16_t cmdL;                    // global variable for Left Command
 int16_t cmdR;                    // global variable for Right Command
+
+static uint8_t enableFin = 0; // moved here from bldc.c 
 
 //------------------------------------------------------------------------
 // Local variables
@@ -183,17 +186,13 @@ int main(void) // MAIN LOOP
 
   MX_GPIO_Init();
   MX_TIM_Init();
-
-  int32_t CH1_DC = 0;  // for testing purpose
-
-/*
-  MX_ADC1_Init();
   BLDC_Init();
 
   Input_Lim_Init();   // Input Limitations Init
-  Input_Init();       // Input Init
+//  Input_Init();       // Input Init
 
-  HAL_ADC_Start(&hadc1);
+//  MX_ADC1_Init();
+//  HAL_ADC_Start(&hadc1);
 
   int32_t board_temp_adcFixdt = adc_buffer.temp << 16;  // Fixed-point filter output initialized with current ADC converted to fixed-point
   int16_t board_temp_adcFilt  = adc_buffer.temp;
@@ -220,23 +219,23 @@ int main(void) // MAIN LOOP
     }
     printf("Drive mode %i selected: max_speed:%i acc_rate:%i \r\n", drive_mode, max_speed, rate);
   #endif
-*/
+
 
   while(1) { // THE MAIN LOOP
 
 
 //  if (buzzerTimer - buzzerTimer_prev > 16*DELAY_IN_MAIN_LOOP) {   // 1 ms = 16 ticks buzzerTimer
 
-/*	calcAvgSpeed();		// Calculate average measured speed: speedAvg,speedAvgAbs
+//	calcAvgSpeed();		// Calculate average measured speed: speedAvg,speedAvgAbs
 
-	readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
+//	readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
 	input1[inIdx].cmd = 49;
 	input2[inIdx].cmd = 49;
 
     	// ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
       	if (enable == 0 && !rtY_Right.z_errCode && ABS(input1[inIdx].cmd) < 50 && ABS(input2[inIdx].cmd) < 50) {
-        	beepShort(6);                     // make 2 beeps indicating the motor enable
-        	beepShort(4);
+        	//beepShort(6);                     // make 2 beeps indicating the motor enable
+        	//beepShort(4);
 		HAL_GPIO_WritePin(LED_PORT, LED_PIN, 0);
 		HAL_Delay(100);
         	steerFixdt = speedFixdt = 0;      // reset filters
@@ -245,77 +244,74 @@ int main(void) // MAIN LOOP
         	printf("-- Motors enabled --\r\n");
         	#endif
       	}
-*/
-	// gdb watch:
-	// 	rtY_Right.z_errCode == ?;
-	//	enable == ?
 
     	// Update states
     	//inIdx_prev = inIdx;
     	//buzzerTimer_prev = buzzerTimer;
-    	//main_loop_counter++;
-	// main loop delay
-	//HAL_Delay(100);
+    	main_loop_counter++;
+	//  main loop delay
+	HAL_Delay(100);
 
-    // =============== MOOTOR CONTROL ===========================
+    // =============== MOOTOR CONTROL  (copied from bldc.c) ===========================
 
     // Get hall sensors values
-    hall_tmp = !(HALL_U_PORT->IDR & HALL_U_PIN);
-    //hall_ur = !(HALL_U_PORT->IDR & HALL_U_PIN);
-    //hall_vr = !(HALL_V_PORT->IDR & HALL_V_PIN);
-    //hall_wr = !(HALL_W_PORT->IDR & HALL_W_PIN);
-/*
+    uint8_t hall_ur = !(HALL_U_PORT->IDR & HALL_U_PIN);
+    uint8_t hall_vr = !(HALL_V_PORT->IDR & HALL_V_PIN);
+    uint8_t hall_wr = !(HALL_W_PORT->IDR & HALL_W_PIN);
+
+    enableFin  = (enable && !rtY_Right.z_errCode);
+
     // Set motor inputs here
     rtU_Right.b_motEna      = enableFin;
-    rtU_Right.z_ctrlModReq  = ctrlModReq;
-    rtU_Right.r_inpTgt      = pwmr;
+    rtU_Right.z_ctrlModReq  = CTRL_MOD_REQ; // =? ctrlModReq;
+    rtU_Right.r_inpTgt      = 250; // pwmr = cmdR, [-1000.1000]
     rtU_Right.b_hallA       = hall_ur;
     rtU_Right.b_hallB       = hall_vr;
     rtU_Right.b_hallC       = hall_wr;
-    rtU_Right.i_phaAB       = curR_phaB;
-    rtU_Right.i_phaBC       = curR_phaC;
-    rtU_Right.i_DCLink      = curR_DC;
+    rtU_Right.i_phaAB       = 0.5; // ???, curR_phaB;
+    rtU_Right.i_phaBC       = -0.5; // ???, curR_phaC;
+    rtU_Right.i_DCLink      = 0.5; // ???, curR_DC;
     // rtU_Right.a_mechAngle   = ...; // Angle input in DEGREES [0,360] in fixdt(1,16,4) data type. If `angle` is float use `= (int16_t)floor(angle * 16.0F)` If `angl>
 
     // Step the controller
     BLDC_controller_step(rtM_Right);
 
     // Get motor outputs here
-    ur            = rtY_Right.DC_phaA;
-    vr            = rtY_Right.DC_phaB;
-    wr            = rtY_Right.DC_phaC;
+    int u            = rtY_Right.DC_phaA;
+    int v            = rtY_Right.DC_phaB;
+    int w            = rtY_Right.DC_phaC;
 
     //MOTOR_TIM->BDTR |= TIM_BDTR_MOE;	// enable to output PWM
 
     // Apply commands
-    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(ur + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
+/*    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(ur + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
     MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(vr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
     MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(wr + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
-*/
-    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(200, 	110, 2000-110);
-    MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(1300, 	110, 2000-110);
-    MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(1500, 	110, 2000-110);
 
+    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(1800, 110, 2000-110);
+    MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(1000, 110, 2000-110);
+    MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(500, 110, 2000-110);
+*/
+    MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(u, 110, 2000-110);
+    MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(v, 110, 2000-110);
+    MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(w, 110, 2000-110);
 
     // ==========END MOOTOR CONTROL ===========================
 
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
+    int32_t CH1_DC = 0;
 
-        while(CH1_DC < 65535)
-        {
-                //TIM1->CCR1 = CH1_DC;
-		MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
-                CH1_DC += 70;
-                HAL_Delay(1);
-        }
-        while(CH1_DC > 0)
-        {
-                //TIM1->CCR1 = CH1_DC;
-		MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
-                CH1_DC -= 70;
-                HAL_Delay(1);
-        }
+    while(CH1_DC < 2000) { // 65535
+	//MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
+        CH1_DC += 10;
+        HAL_Delay(1);
+    }
+    while(CH1_DC > 110) {
+	//MOTOR_TIM->MOTOR_TIM_U = CH1_DC;
+        CH1_DC -= 10;
+        HAL_Delay(1);
+    }
 
   }
 }
