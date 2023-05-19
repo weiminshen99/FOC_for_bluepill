@@ -76,7 +76,7 @@ extern uint8_t timeoutFlgSerial;        // Timeout Flag for Rx Serial command: 0
 extern volatile int pwml;               // global variable for pwm left. -1000 to 1000
 extern volatile int pwmr;               // global variable for pwm right. -1000 to 1000
 
-uint8_t enable = 0;   // this global variable for motor enable is copied from bldc.c
+extern uint8_t enable;   		// defined in bldc.c
 
 extern int16_t batVoltage;              // global variable for battery voltage
 
@@ -94,7 +94,7 @@ int16_t dc_curr;                 // global variable for Total DC Link current
 int16_t cmdL;                    // global variable for Left Command
 int16_t cmdR;                    // global variable for Right Command
 
-static uint8_t enableFin = 0; // moved here from bldc.c 
+static uint8_t enableFin; 	//  defined in bldc.c
 
 //------------------------------------------------------------------------
 // Local variables
@@ -220,7 +220,6 @@ int main(void) // MAIN LOOP
     printf("Drive mode %i selected: max_speed:%i acc_rate:%i \r\n", drive_mode, max_speed, rate);
   #endif
 
-
   while(1) { // THE MAIN LOOP
 
 
@@ -295,6 +294,14 @@ int main(void) // MAIN LOOP
     MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(u, 110, 2000-110);
     MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(v, 110, 2000-110);
     MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(w, 110, 2000-110);
+
+  #ifdef MULTI_MODE_DRIVE
+    // Wait until triggers are released. Exit if timeout elapses (to unblock if the inputs are not calibrated)
+    int iTimeout = 0;
+    while((adc_buffer.l_rx2 + adc_buffer.l_tx2) >= (input1[0].min + input2[0].min) && iTimeout++ < 300) {
+      HAL_Delay(10);
+    }
+  #endif
 
     // ==========END MOOTOR CONTROL ===========================
 
