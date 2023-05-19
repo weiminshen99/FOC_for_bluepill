@@ -220,7 +220,6 @@ int main(void) // MAIN LOOP
     printf("Drive mode %i selected: max_speed:%i acc_rate:%i \r\n", drive_mode, max_speed, rate);
   #endif
 
-
   while(1) { // THE MAIN LOOP
 
 
@@ -295,6 +294,14 @@ int main(void) // MAIN LOOP
     MOTOR_TIM->MOTOR_TIM_U  = (uint16_t)CLAMP(u, 110, 2000-110);
     MOTOR_TIM->MOTOR_TIM_V  = (uint16_t)CLAMP(v, 110, 2000-110);
     MOTOR_TIM->MOTOR_TIM_W  = (uint16_t)CLAMP(w, 110, 2000-110);
+
+  #ifdef MULTI_MODE_DRIVE
+    // Wait until triggers are released. Exit if timeout elapses (to unblock if the inputs are not calibrated)
+    int iTimeout = 0;
+    while((adc_buffer.l_rx2 + adc_buffer.l_tx2) >= (input1[0].min + input2[0].min) && iTimeout++ < 300) {
+      HAL_Delay(10);
+    }
+  #endif
 
     // ==========END MOOTOR CONTROL ===========================
 
